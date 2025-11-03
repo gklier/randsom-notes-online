@@ -227,3 +227,18 @@ textarea {
   font-size: 1.6rem;
   transform: rotate(-1deg);
 }
+
+/* --- client/src/App.css --- */
+
+/* ... existing CSS ... */
+
+/* NEW: Chat box styling for responsiveness */
+@media (max-width: 768px) {
+  .lobby-container { /* If you add a flex container to LobbyScreen */
+    flex-direction: column;
+  }
+  .lobby-container > div {
+    border-left: none !important;
+    padding-left: 0 !important;
+  }
+}

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Howl } from 'howler'; // <-- Import Howler
 
 // The working music URL
-const musicUrl = "https://pixabay.com/music/vintage-smooth-instrumental-jazz-music-349777/";
+const musicUrl = "/jazz.mp3"; // The "/" tells it to look in the root public folder
 
 // Create the Howl object.
 // We use a ref to make sure it's only created once.

@@ -1,7 +1,7 @@
 // --- client/src/HomeScreen.jsx ---
 
 import { useState } from 'react';
-import SuggestionBox from './SuggestionBox';
+//import SuggestionBox from './SuggestionBox';
 
 function HomeScreen({ socket, onGoToCreate }) {
   const [pinInput, setPinInput] = useState('');

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
-import './App.css'; // <-- IMPORT THE NEW CSS FILE
+import './App.css'; 
 
 // Import our new screen components
 import HomeScreen from './HomeScreen';
@@ -10,57 +10,43 @@ import CreateGameScreen from './CreateGameScreen';
 import LobbyScreen from './LobbyScreen';
 import SubmissionScreen from './SubmissionScreen';
 import JudgingScreen from './JudgingScreen';
+import MusicPlayer from './MusicPlayer'; // <-- 1. IMPORT IT
 
 // Connect to the server
 const socket = io(import.meta.env.VITE_SERVER_URL);
 
 function App() {
-  // gameState controls which "scene" is visible
+  // ... (all your useState and useEffect logic stays exactly the same) ...
   const [gameState, setGameState] = useState('HOME');
-  
-  // gameData stores ALL information about the game
   const [gameData, setGameData] = useState(null);
 
   useEffect(() => {
     // === CENTRAL LISTENERS ===
-
-    // Host: Game is created
     socket.on('gameCreated', (game) => {
       setGameData(game);
       setGameState('LOBBY');
     });
-
-    // Player: Joined game successfully
     socket.on('joinSuccess', (game) => {
       setGameData(game);
       setGameState('LOBBY');
     });
-
-    // All: Player list updated
     socket.on('playerListUpdate', (players) => {
       setGameData(prevData => ({ ...prevData, players }));
     });
-    
-    // Player: A new round is starting
-    socket.on('newRound', ({ prompt, wordPool, randomFact }) => {
+    socket.on('newRound', ({ prompt, wordPool, randomJoke }) => {
       setGameData(prevData => ({ 
         ...prevData, 
         prompt, 
         wordPool, 
-        randomFact 
+        randomJoke 
       }));
       setGameState('SUBMITTING');
     });
-
-    // All: Submissions are in, time to judge
     socket.on('showSubmissions', ({ prompt, submissions, players }) => {
       setGameData(prevData => ({ ...prevData, prompt, submissions, players }));
       setGameState('JUDGING');
     });
-    
-    // All: Round is over, back to lobby
     socket.on('roundOver', ({ scores, ...rest }) => {
-      // We set 'prompt' and 'wordPool' to null to clean up
       setGameData(prevData => ({ 
         ...prevData, 
         players: scores, 
@@ -70,14 +56,10 @@ function App() {
       }));
       setGameState('LOBBY');
     });
-
-    // Handle errors
     socket.on('joinError', (message) => {
       alert(message);
       setGameState('HOME');
     });
-
-    // Clean up listeners on unmount
     return () => {
       socket.off('gameCreated');
       socket.off('joinSuccess');
@@ -115,6 +97,7 @@ function App() {
 
   return (
     <div className="app-container">
+      <MusicPlayer /> {/* <-- 2. ADD IT HERE */}
       {renderScene()}
     </div>
   );

@@ -58,6 +58,16 @@ function HomeScreen({ socket, onGoToCreate }) {
         <p><strong>6. Repeat:</strong> The first player to 5 points (or however many you decide) wins!</p>
       </div>
 
+      {/* --- NEW SEO KEYWORD SECTION --- */}
+      <div className="about-box" style={{marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #eee'}}>
+        <h3 style={{textAlign: 'center'}}>About Ransom Notes Online</h3>
+        <p style={{fontSize: '0.9rem', color: '#555', lineHeight: '1.5'}}>
+          Welcome to Ransom Notes Online, a free party game for you and your friends! This game is inspired by the hilarious board game and games like Cards Against Humanity or Jackbox. 
+          The goal is simple: you get a silly prompt, and you have to answer it using a random bank of word magnets. 
+          Create the funniest, most ridiculous sentence to win the judge's favor. Our game is 100% free to play, works on your phone or computer, and is the perfect online word game for your next game night.
+        </p>
+      </div>
+
       {/* --- DONATION SECTION --- */}
       <div className="donation-box" style={{textAlign: 'center', marginTop: '2rem', padding: '1.5rem', background: '#f9f9f9', border: '2px dashed #ccc'}}>
         <h4>Enjoying the game?</h4>
@@ -73,17 +83,8 @@ function HomeScreen({ socket, onGoToCreate }) {
         </a>
       </div>
 
-      <SuggestionBox />
+      {/* <SuggestionBox />  This was also temporarily commented out, uncomment if you want it back */}
 
-      {/* --- NEW SEO KEYWORD SECTION --- */}
-      <div className="about-box" style={{marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #eee'}}>
-        <h3 style={{textAlign: 'center'}}>About Ransom Notes Online</h3>
-        <p style={{fontSize: '0.9rem', color: '#555', lineHeight: '1.5'}}>
-          Welcome to Ransom Notes Online, a free party game for you and your friends! This game is inspired by the hilarious board game and games like Cards Against Humanity or Jackbox. 
-          The goal is simple: you get a silly prompt, and you have to answer it using a random bank of word magnets. 
-          Create the funniest, most ridiculous sentence to win the judge's favor. Our game is 100% free to play, works on your phone or computer, and is the perfect online word game for your next game night.
-        </p>
-      </div>
     </div>
   );
 }

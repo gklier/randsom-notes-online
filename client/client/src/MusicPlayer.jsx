@@ -2,15 +2,15 @@
 
 import { useState, useRef } from 'react';
 
-const musicUrl = "https://cdn.pixabay.com/audio/2022/03/18/audio_8b28f11822.mp3";
+// THIS IS THE NEW, WORKING LINK
+const musicUrl = "https://pixabay.com/music/vintage-smooth-instrumental-jazz-music-349777/";
 
 function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
   const togglePlay = () => {
-    // This is a crucial debug step.
-    // Press F12 in your browser to open the console and see this message.
+    // F12 Console Debug: Check that the click is firing
     console.log("Toggle play clicked. Current state:", isPlaying);
 
     if (isPlaying) {
@@ -20,17 +20,25 @@ function MusicPlayer() {
       console.log("Music paused.");
     } else {
       // If it is NOT playing, we want to play it
-      // .play() returns a Promise. We must handle it.
+      
+      // 1. Force the audio element to load the media.
+      audioRef.current.load();
+      
+      // 2. Call play(), which returns a promise.
       const playPromise = audioRef.current.play();
 
       if (playPromise !== undefined) {
         playPromise.then(() => {
           // Playback started successfully!
-          console.log("Music is playing.");
+          console.log("Playback started successfully.");
           setIsPlaying(true);
         }).catch(error => {
           // Playback failed (e.g., browser block or other error)
           console.error("Audio playback failed:", error);
+          
+          // Show an alert so the user knows there's an issue
+          alert("Could not play audio. Please check your browser's permissions or try clicking again.");
+          
           setIsPlaying(false); // Ensure state is correct
         });
       }
@@ -39,14 +47,10 @@ function MusicPlayer() {
 
   return (
     <div>
-      {/* We add preload="auto" to hint the browser 
-        to load the file as soon as possible.
-      */}
       <audio 
         ref={audioRef} 
         src={musicUrl} 
         loop 
-        preload="auto" 
       />
 
       <button className="music-player-button" onClick={togglePlay}>

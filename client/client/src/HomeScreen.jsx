@@ -73,7 +73,7 @@ function HomeScreen({ socket, onGoToCreate }) {
         <h4>Enjoying the game?</h4>
         <p style={{fontSize: '0.95rem', lineHeight: '1.6'}}>This project is free to play and ad-free. If you'd like to support the server costs, you can buy me a (virtual) coffee!</p>
         <a 
-          href="https://buymeacoffee.com/YourName" // <-- ⚠️ REPLACE 'YourName' WITH YOUR LINK
+          href="https://buymeacoffee.com/gklier" // <-- ⚠️ REPLACE 'YourName' WITH YOUR LINK
           target="_blank" 
           rel="noopener noreferrer"
         >

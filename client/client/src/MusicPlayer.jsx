@@ -1,40 +1,54 @@
 // --- client/src/MusicPlayer.jsx ---
 
-import { useState, useRef } from 'react'; // No useEffect needed
+import { useState, useRef } from 'react';
 
-// A direct link to a royalty-free smooth jazz loop
 const musicUrl = "https://cdn.pixabay.com/audio/2022/03/18/audio_8b28f11822.mp3";
 
 function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
-  // This function is now the only thing we need
   const togglePlay = () => {
+    // This is a crucial debug step.
+    // Press F12 in your browser to open the console and see this message.
+    console.log("Toggle play clicked. Current state:", isPlaying);
+
     if (isPlaying) {
       // If it IS playing, we want to pause it
       audioRef.current.pause();
       setIsPlaying(false);
+      console.log("Music paused.");
     } else {
       // If it is NOT playing, we want to play it
-      try {
-        // We call .play() directly inside the click event
-        audioRef.current.play();
-        setIsPlaying(true);
-      } catch (error) {
-        console.error("Audio play failed. User may need to interact again.", error);
+      // .play() returns a Promise. We must handle it.
+      const playPromise = audioRef.current.play();
+
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          // Playback started successfully!
+          console.log("Music is playing.");
+          setIsPlaying(true);
+        }).catch(error => {
+          // Playback failed (e.g., browser block or other error)
+          console.error("Audio playback failed:", error);
+          setIsPlaying(false); // Ensure state is correct
+        });
       }
     }
   };
-  
-  // The useEffect hook has been removed
 
   return (
     <div>
-      {/* The HTML audio element */}
-      <audio ref={audioRef} src={musicUrl} loop />
+      {/* We add preload="auto" to hint the browser 
+        to load the file as soon as possible.
+      */}
+      <audio 
+        ref={audioRef} 
+        src={musicUrl} 
+        loop 
+        preload="auto" 
+      />
 
-      {/* This button now directly controls the audio */}
       <button className="music-player-button" onClick={togglePlay}>
         {isPlaying ? 'Mute Music' : 'Play Music'}
       </button>

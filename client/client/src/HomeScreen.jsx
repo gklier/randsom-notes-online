@@ -43,6 +43,19 @@ function HomeScreen({ socket, onGoToCreate }) {
         />
         <button onClick={handleJoinGame}>Join</button>
       </div>
+
+      <hr /> 
+
+      {/* --- NEW INSTRUCTIONS SECTION --- */}
+      <div className="instructions-box">
+        <h2>How to Play</h2>
+        <p><strong>1. Host a Game:</strong> One person (the Host) clicks "Create New Game," enters their nickname, and chooses a game pack (or creates their own!).</p>
+        <p><strong>2. Get a PIN:</strong> The Host will get a 4-digit Game PIN.</p>
+        <p><strong>3. Join the Game:</strong> Everyone else enters their nickname and the 4-digit PIN to join the lobby.</p>
+        <p><strong>4. Answer the Prompt:</strong> When the Host starts the round, everyone will get a random prompt. Use the "word pool" at the bottom to build your funniest answer!</p>
+        <p><strong>5. Judge the Answers:</strong> All answers are shown anonymously. The Host picks their favorite, and that player gets a point!</p>
+        <p><strong>6. Repeat:</strong> The first player to 5 points (or however many you decide) wins!</p>
+      </div>
     </div>
   );
 }

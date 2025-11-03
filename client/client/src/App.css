@@ -8,6 +8,7 @@
   background: #fff;
   border: 1px solid #ccc;
   box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
+  position: relative; /* Added for positioning context */
 }
 
 /* --- Buttons & Inputs --- */
@@ -71,17 +72,8 @@ textarea {
   color: #555;
   margin-bottom: 0.5rem;
 }
-.winner-box p {
-  font-family: Arial, sans-serif; /* Use a different font for the "answer" */
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #000;
-  margin: 0;
-}
 
-/* --- THE RANSOM NOTE EFFECT --- */
-/* This is for the SubmissionScreen */
-
+/* --- THE RANSOM NOTE EFFECT (SubmissionScreen) --- */
 .submission-area {
   border: 2px dashed #aaa;
   min-height: 100px;
@@ -96,10 +88,9 @@ textarea {
   border: 1px solid #eee;
 }
 
-/* This is the most important part! */
 .word-pool button,
 .submission-area button {
-  font-family: 'Arial', 'Helvetica', sans-serif; /* Use a boring font */
+  font-family: 'Arial', 'Helvetica', sans-serif;
   border: none;
   padding: 4px 6px;
   margin: 3px;
@@ -117,7 +108,6 @@ textarea {
   box-shadow: 3px 3px 5px rgba(0,0,0,0.3);
 }
 
-/* Style alternating buttons differently to look like cutouts */
 .word-pool button:nth-child(3n) {
   background: #f1f1f1;
   color: #222;
@@ -125,14 +115,12 @@ textarea {
   font-weight: normal;
   font-size: 1.2rem;
 }
-
 .word-pool button:nth-child(3n+1) {
   background: #333;
   color: #fff;
   font-size: 1rem;
   padding-top: 6px;
 }
-
 .word-pool button:nth-child(3n+2) {
   background: #fff;
   color: #333;
@@ -151,4 +139,91 @@ textarea {
   font-style: italic;
   max-width: 400px;
   margin: 0 auto;
+}
+
+/* --- NEW STYLES FOR MUSIC PLAYER --- */
+.music-player-button {
+  position: absolute; /* Sticks it to the corner of .app-container */
+  top: 10px;
+  right: 10px;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  z-index: 10; /* Makes sure it's on top */
+  background: #fff;
+  border: 1px solid #ccc;
+}
+
+.music-player-button:hover {
+  background: #eee;
+  color: #000;
+}
+
+/* --- NEW: INSTRUCTIONS BOX --- */
+.instructions-box {
+  border: 2px dashed #aaa;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  background: #fdfdfd;
+}
+
+.instructions-box h2 {
+  text-align: center;
+}
+
+.instructions-box p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* --- NEW: RANSOM NOTE TEXT STYLES --- */
+/* This container holds the styled text for prompts and answers */
+.ransom-note-text {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 1rem;
+  min-height: 50px;
+}
+
+/* This styles each individual "cut-out" word */
+.ransom-note-text span {
+  display: inline-block;
+  font-weight: bold;
+  text-transform: uppercase;
+  padding: 4px 6px;
+  margin: 4px;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  line-height: 1;
+}
+
+/* We create 4 different styles to rotate through */
+.ransom-note-text span:nth-child(4n+1) {
+  font-family: 'Oswald', sans-serif;
+  background: #fff;
+  color: #222;
+  font-size: 1.6rem;
+  transform: rotate(-2deg);
+}
+.ransom-note-text span:nth-child(4n+2) {
+  font-family: 'Anton', sans-serif;
+  background: #333;
+  color: #fff;
+  font-size: 1.5rem;
+  padding-top: 6px;
+  transform: rotate(1deg);
+}
+.ransom-note-text span:nth-child(4n+3) {
+  font-family: 'Special Elite', monospace;
+  background: #f0f0f0;
+  color: #000;
+  font-size: 1.4rem;
+  transform: rotate(3deg);
+  border: 1px dotted #888;
+}
+.ransom-note-text span:nth-child(4n+4) {
+  font-family: 'Courier New', monospace;
+  background: #ffc;
+  color: #333;
+  font-size: 1.6rem;
+  transform: rotate(-1deg);
 }

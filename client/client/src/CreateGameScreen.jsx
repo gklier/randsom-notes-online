@@ -5,8 +5,13 @@ import { useState } from 'react';
 function CreateGameScreen({ socket, onBack }) {
   const [promptsText, setPromptsText] = useState('');
   const [wordsText, setWordsText] = useState('');
+  const [hostNickname, setHostNickname] = useState(''); // <-- NEW STATE
 
   const handleCreate = () => {
+    if (!hostNickname) { // <-- NEW CHECK
+      alert('Please enter your nickname');
+      return;
+    }
     const customPrompts = promptsText.split('\n').filter(line => line.trim() !== '');
     const customWords = wordsText.split(' ').filter(word => word.trim() !== '');
 
@@ -15,18 +20,34 @@ function CreateGameScreen({ socket, onBack }) {
       return;
     }
     
-    socket.emit('createGame', { customPrompts, customWords });
+    socket.emit('createGame', { customPrompts, customWords, hostNickname }); // <-- PASS NICKNAME
   };
 
   const handleCreateDefault = (packName) => {
-    socket.emit('createGame', { defaultPack: packName });
+    if (!hostNickname) { // <-- NEW CHECK
+      alert('Please enter your nickname');
+      return;
+    }
+    socket.emit('createGame', { defaultPack: packName, hostNickname }); // <-- PASS NICKNAME
   };
 
   return (
     <div>
       <button onClick={onBack}>&larr; Back</button>
       <h2>Create Your Game</h2>
-      
+
+      {/* --- NEW HOST NICKNAME INPUT --- */}
+      <div>
+        <h4>Your Nickname</h4>
+        <input 
+          type="text" 
+          placeholder="Enter your nickname"
+          value={hostNickname}
+          onChange={(e) => setHostNickname(e.target.value)}
+        />
+      </div>
+      <hr />
+
       <div className="custom-game-box">
         <h3>Make Your Own Pack</h3>
         <p>Add your prompts (one per line):</p>

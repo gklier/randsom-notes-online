@@ -2,15 +2,24 @@
 
 import { useState, useEffect } from 'react';
 
+// Helper component to render text in the ransom note style
+const RansomText = ({ text }) => {
+  if (!text) return null;
+  const words = text.split(' ');
+  return (
+    <div className="ransom-note-text">
+      {words.map((word, index) => (
+        <span key={index}>{word}</span>
+      ))}
+    </div>
+  );
+};
+
 function SubmissionScreen({ socket, gameData }) {
   const [myAnswer, setMyAnswer] = useState([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  
-  // Initialize availableWords from gameData.wordPool
-  // This ensures it resets every round
   const [availableWords, setAvailableWords] = useState(gameData.wordPool || []);
 
-  // This effect runs if the gameData.wordPool changes (e.g., new round)
   useEffect(() => {
     setAvailableWords(gameData.wordPool || []);
     setMyAnswer([]);
@@ -20,16 +29,13 @@ function SubmissionScreen({ socket, gameData }) {
 
   const addWord = (word, index) => {
     setMyAnswer([...myAnswer, word]);
-    // Remove word from available pool to prevent reuse
     const newPool = [...availableWords];
     newPool.splice(index, 1);
     setAvailableWords(newPool);
   };
 
   const removeWord = (word, index) => {
-    // Add word back to the available pool
     setAvailableWords([...availableWords, word]);
-    // Remove from answer
     const newAnswer = [...myAnswer];
     newAnswer.splice(index, 1);
     setMyAnswer(newAnswer);
@@ -47,8 +53,8 @@ function SubmissionScreen({ socket, gameData }) {
         <h3>Submission sent!</h3>
         <p>Waiting for other players...</p>
         <hr />
-        <h4>Random Fact:</h4>
-        <p>{gameData.randomFact}</p>
+        <h4>Here's a Joke:</h4>
+        <p>{gameData.randomJoke}</p>
       </div>
     );
   }
@@ -56,7 +62,8 @@ function SubmissionScreen({ socket, gameData }) {
   return (
     <div>
       <h2>The Prompt:</h2>
-      <h3 style={{ color: 'blue' }}>{gameData.prompt}</h3>
+      {/* Use the new RansomText component for the prompt */}
+      <RansomText text={gameData.prompt} />
       <hr />
       
       <h4>Your Answer:</h4>

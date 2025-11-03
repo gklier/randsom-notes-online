@@ -1,8 +1,20 @@
 // --- client/src/LobbyScreen.jsx ---
 
+// Helper component to render text in the ransom note style
+const RansomText = ({ text }) => {
+  if (!text) return null;
+  const words = text.split(' ');
+  return (
+    <div className="ransom-note-text">
+      {words.map((word, index) => (
+        <span key={index}>{word}</span>
+      ))}
+    </div>
+  );
+};
+
 function LobbyScreen({ socket, gameData }) {
   
-  // Check if the current user is the host
   const isHost = socket.id === gameData.hostId;
 
   const handleStartGame = () => {
@@ -17,7 +29,8 @@ function LobbyScreen({ socket, gameData }) {
       {gameData.winnerNickname && (
         <div className="winner-box">
           <h4>Last Round's Winner: {gameData.winnerNickname}</h4>
-          <p>"{gameData.winningAnswer}"</p>
+          {/* Use the new RansomText component */}
+          <RansomText text={gameData.winningAnswer} />
         </div>
       )}
 
@@ -25,13 +38,15 @@ function LobbyScreen({ socket, gameData }) {
       <ul>
         {gameData.players.map(player => (
           <li key={player.id}>
-            {player.nickname} - Score: {player.score}
-            {player.id === gameData.hostId && ' (Host)'}
+            {player.nickname}
+            {/* THIS IS THE NEW HOST LOGIC */}
+            {player.id === gameData.hostId ? ' (Host)' : ''}
+            {' - '}
+            Score: {player.score}
           </li>
         ))}
       </ul>
       
-      {/* Only show "Start Game" button to the host */}
       {isHost && (
         <button onClick={handleStartGame}>Start Next Round</button>
       )}

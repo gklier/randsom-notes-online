@@ -20,11 +20,13 @@ function SubmissionScreen({ socket, gameData }) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [availableWords, setAvailableWords] = useState(gameData.wordPool || []);
 
+  const isJudge = socket.id === gameData.currentJudgeId; // <-- NEW
+
   useEffect(() => {
     setAvailableWords(gameData.wordPool || []);
     setMyAnswer([]);
     setIsSubmitted(false);
-  }, [gameData.wordPool]);
+  }, [gameData.wordPool, gameData.currentJudgeId]); // <-- ADDED currentJudgeId to dependency array
 
 
   const addWord = (word, index) => {
@@ -47,6 +49,18 @@ function SubmissionScreen({ socket, gameData }) {
     setIsSubmitted(true);
   };
 
+  if (isJudge) { // <-- NEW: If you're the judge, you don't submit
+    return (
+      <div className="waiting-box">
+        <h3>You are the judge this round!</h3>
+        <p>Waiting for other players to submit their answers...</p>
+        <hr />
+        <h4>Here's a Joke:</h4>
+        <p>{gameData.randomJoke}</p>
+      </div>
+    );
+  }
+
   if (isSubmitted) {
     return (
       <div className="waiting-box">
@@ -62,7 +76,6 @@ function SubmissionScreen({ socket, gameData }) {
   return (
     <div>
       <h2>The Prompt:</h2>
-      {/* Use the new RansomText component for the prompt */}
       <RansomText text={gameData.prompt} />
       <hr />
       

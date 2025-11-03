@@ -1,6 +1,6 @@
 // --- client/src/LobbyScreen.jsx ---
 
-import { useState, useEffect, useRef } from 'react'; // ADD useRef
+import { useState, useEffect, useRef } from 'react';
 
 // Helper component to render text in the ransom note style
 const RansomText = ({ text }) => {
@@ -16,35 +16,33 @@ const RansomText = ({ text }) => {
 };
 
 function LobbyScreen({ socket, gameData }) {
-  const isHost = socket.id === gameData.hostId;
-  const [chatMessages, setChatMessages] = useState(gameData.chatMessages || []); // Initialize with existing messages
+  // `isJudge` will now determine who can start the round
+  const isJudge = socket.id === gameData.currentJudgeId; // <-- UPDATED
+  const [chatMessages, setChatMessages] = useState(gameData.chatMessages || []);
   const [chatInput, setChatInput] = useState('');
-  const chatMessagesEndRef = useRef(null); // Ref for auto-scrolling chat
+  const chatMessagesEndRef = useRef(null);
 
+  // Derive current player nickname from gameData.players
   const currentPlayerNickname = gameData.players.find(p => p.id === socket.id)?.nickname || 'Guest';
+  const currentJudgeNickname = gameData.players.find(p => p.id === gameData.currentJudgeId)?.nickname || 'Nobody'; // <-- NEW
 
   useEffect(() => {
-    // Listener for new chat messages
     socket.on('newMessage', (message) => {
       setChatMessages((prevMessages) => [...prevMessages, message]);
     });
 
-    // Listener for full chat history update (e.g., when a player joins/leaves)
-    socket.on('chatHistory', (history) => {
-      setChatMessages(history);
-    });
+    // The server will send a full `gameCreated` or `joinSuccess` with initial chat
+    // and `roundOver` will update gameData, which will have new chat messages.
 
-    // Clean up event listeners on unmount
     return () => {
       socket.off('newMessage');
-      socket.off('chatHistory');
     };
   }, [socket]);
 
-  // Auto-scroll chat messages to the bottom
   useEffect(() => {
     chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
+
 
   const handleStartGame = () => {
     socket.emit('startGame', { pin: gameData.pin });
@@ -67,28 +65,32 @@ function LobbyScreen({ socket, gameData }) {
         
         {gameData.winnerNickname && (
           <div className="winner-box">
-            <h4>Last Round's Winner: {gameData.winnerNickname}</h4>
+            <h4>Last Round's Winner: {gameData.winnerNickname}!</h4>
             <RansomText text={gameData.winningAnswer} />
           </div>
         )}
+
+        {/* --- NEW: Display Current Judge --- */}
+        <h3>👑 Current Judge: {currentJudgeNickname}</h3>
 
         <h4>Players:</h4>
         <ul>
           {gameData.players.map(player => (
             <li key={player.id}>
               {player.nickname}
-              {player.id === gameData.hostId ? ' (Host)' : ''}
+              {player.id === gameData.hostId ? ' (Original Host)' : ''} {/* Clarify who the original host is */}
+              {player.id === gameData.currentJudgeId ? ' (Judge)' : ''} {/* Show who the current judge is */}
               {' - '}
               Score: {player.score}
             </li>
           ))}
         </ul>
         
-        {isHost && (
+        {isJudge && ( // Only the judge can start
           <button onClick={handleStartGame}>Start Next Round</button>
         )}
-        {!isHost && (
-          <p>Waiting for the host to start the game...</p>
+        {!isJudge && (
+          <p>Waiting for the judge ({currentJudgeNickname}) to start the game...</p>
         )}
       </div>
 
@@ -103,7 +105,7 @@ function LobbyScreen({ socket, gameData }) {
               </span> {msg.message}
             </p>
           ))}
-          <div ref={chatMessagesEndRef} /> {/* For auto-scrolling */}
+          <div ref={chatMessagesEndRef} />
         </div>
         <form onSubmit={handleSendChat}>
           <input

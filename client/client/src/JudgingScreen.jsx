@@ -14,7 +14,8 @@ const RansomText = ({ text }) => {
 };
 
 function JudgingScreen({ socket, gameData }) {
-  const isHost = socket.id === gameData.hostId;
+  // `isJudge` will now determine who can pick the winner
+  const isJudge = socket.id === gameData.currentJudgeId; // <-- UPDATED
   
   const submissions = Object.keys(gameData.submissions).map(playerId => {
     const player = gameData.players.find(p => p.id === playerId);
@@ -29,23 +30,23 @@ function JudgingScreen({ socket, gameData }) {
     socket.emit('selectWinner', { pin: gameData.pin, winnerId });
   };
 
+  const currentJudgeNickname = gameData.players.find(p => p.id === gameData.currentJudgeId)?.nickname || 'Nobody'; // <-- NEW
+
   return (
     <div>
       <h2>Time to Judge!</h2>
       <h3>The Prompt:</h3>
-      {/* Use the new RansomText component for the prompt */}
       <RansomText text={gameData.prompt} />
       <hr />
 
       <h4>Submissions:</h4>
-      {submissions.map(sub => (
+      {/* Filter out the judge's own submission if they were allowed to submit (which they shouldn't be with the rotating judge) */}
+      {submissions.filter(sub => sub.id !== gameData.currentJudgeId).map(sub => ( // <-- Filter out judge's own (if any)
         <div key={sub.id} style={{ border: '1px solid black', padding: '10px', margin: '10px' }}>
           <p><strong>{sub.nickname}'s answer:</strong></p>
-          
-          {/* Use the new RansomText component for the answer */}
           <RansomText text={sub.answer} />
           
-          {isHost && (
+          {isJudge && ( // Only the judge can click this button
             <button onClick={() => handleSelectWinner(sub.id)}>
               Make this the Winner
             </button>
@@ -53,8 +54,8 @@ function JudgingScreen({ socket, gameData }) {
         </div>
       ))}
       
-      {!isHost && (
-        <h4>Waiting for the host to pick a winner...</h4>
+      {!isJudge && (
+        <h4>Waiting for the judge ({currentJudgeNickname}) to pick a winner...</h4>
       )}
     </div>
   );

@@ -103,13 +103,14 @@ app.post('/submit-suggestion', async (req, res) => {
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // --- NEW: LOBBY CHAT MESSAGE HANDLING ---
+  // --- LOBBY CHAT MESSAGE HANDLING ---
   socket.on('sendMessage', ({ pin, nickname, message }) => {
-    // Only allow messages from players actually in the game room
     const game = games[pin];
     if (game && game.players.some(p => p.id === socket.id)) {
       console.log(`[${pin}] Chat from ${nickname}: ${message}`);
-      io.to(pin).emit('newMessage', { nickname, message, timestamp: Date.now() });
+      const chatMsg = { nickname, message, timestamp: Date.now() };
+      game.chatMessages.push(chatMsg);
+      io.to(pin).emit('newMessage', chatMsg); // Send single new message
     }
   });
   // -------------------------------------
@@ -120,7 +121,6 @@ io.on('connection', (socket) => {
     let gamePrompts, gameWords, packName;
     const nickname = hostNickname || 'Host';
 
-    // Add initial chat messages for a new game
     const initialChatMessages = [{ nickname: 'System', message: `${nickname} created the game!`, timestamp: Date.now() }];
 
     if (defaultPack && defaultPacks[defaultPack]) {
@@ -134,7 +134,7 @@ io.on('connection', (socket) => {
     }
 
     games[roomPIN] = {
-      hostId: socket.id,
+      hostId: socket.id, // The host of the game initially is the creator
       pin: roomPIN,
       players: [{ id: socket.id, nickname: nickname, score: 0 }],
       prompts: gamePrompts,
@@ -143,7 +143,9 @@ io.on('connection', (socket) => {
       gameState: 'LOBBY',
       submissions: {},
       currentPrompt: '',
-      chatMessages: initialChatMessages, // Store chat messages here
+      chatMessages: initialChatMessages,
+      judgeIndex: 0, // <-- NEW: Start judge at the first player
+      currentJudgeId: socket.id, // <-- NEW: Initial judge is the host
     };
     socket.join(roomPIN);
     socket.emit('gameCreated', games[roomPIN]);
@@ -153,7 +155,6 @@ io.on('connection', (socket) => {
   socket.on('joinGame', ({ pin, nickname }) => {
     const game = games[pin];
     if (game) {
-      // Check if player with this nickname already exists in the room
       if (game.players.some(p => p.nickname.toLowerCase() === nickname.toLowerCase())) {
         socket.emit('joinError', 'Nickname already in use in this game.');
         return;
@@ -164,20 +165,22 @@ io.on('connection', (socket) => {
       socket.join(pin);
 
       // Add a system message for player joining
-      game.chatMessages.push({ nickname: 'System', message: `${nickname} joined the game.`, timestamp: Date.now() });
+      const joinMsg = { nickname: 'System', message: `${nickname} joined the game.`, timestamp: Date.now() };
+      game.chatMessages.push(joinMsg);
       
-      socket.emit('joinSuccess', game); // Send full game state including chat history
+      socket.emit('joinSuccess', game); 
       io.to(pin).emit('playerListUpdate', game.players);
-      io.to(pin).emit('chatHistory', game.chatMessages); // Send current chat history to all
+      io.to(pin).emit('newMessage', joinMsg); // Send join message to everyone
     } else {
       socket.emit('joinError', 'Game not found');
     }
   });
 
-  // 3. HOST STARTS A ROUND
+  // 3. HOST (JUDGE) STARTS A ROUND
   socket.on('startGame', ({ pin }) => {
     const game = games[pin];
-    if (game && game.hostId === socket.id) {
+    // Check if the current socket is the current judge
+    if (game && game.currentJudgeId === socket.id) { // <-- UPDATED CHECK
       const promptIndex = Math.floor(Math.random() * game.prompts.length);
       const prompt = game.prompts.splice(promptIndex, 1)[0];
       game.currentPrompt = prompt;
@@ -201,29 +204,45 @@ io.on('connection', (socket) => {
     const game = games[pin];
     if (game && game.gameState === 'SUBMITTING') {
       game.submissions[socket.id] = answer;
-      io.to(game.hostId).emit('playerSubmitted', socket.id);
-      if (Object.keys(game.submissions).length === game.players.length) {
+      // Only notify the current judge, not the original host
+      io.to(game.currentJudgeId).emit('playerSubmitted', socket.id); // <-- UPDATED TARGET
+      
+      // Check if all players (excluding the judge) have submitted
+      const playersSubmitting = game.players.filter(p => p.id !== game.currentJudgeId);
+      if (Object.keys(game.submissions).length === playersSubmitting.length) {
         game.gameState = 'JUDGING';
         io.to(pin).emit('showSubmissions', {
           prompt: game.currentPrompt,
           submissions: game.submissions,
-          players: game.players
+          players: game.players,
+          currentJudgeId: game.currentJudgeId // <-- Send judge ID to frontend
         });
       }
     }
   });
 
-  // 5. HOST PICKS WINNER
+  // 5. HOST (JUDGE) PICKS WINNER
   socket.on('selectWinner', ({ pin, winnerId }) => {
     const game = games[pin];
-    if (game && game.hostId === socket.id && game.gameState === 'JUDGING') {
+    // Check if the current socket is the current judge
+    if (game && game.currentJudgeId === socket.id && game.gameState === 'JUDGING') { // <-- UPDATED CHECK
       const winner = game.players.find(p => p.id === winnerId);
       if (winner) winner.score++;
+      
+      // --- NEW: Rotate the Judge ---
+      game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
+      game.currentJudgeId = game.players[game.judgeIndex].id;
+      // -----------------------------
+
+      // Send the updated game state to all players
       io.to(pin).emit('roundOver', {
         winnerNickname: winner.nickname,
         winningAnswer: game.submissions[winnerId],
-        scores: game.players
+        scores: game.players,
+        currentJudgeId: game.currentJudgeId, // <-- Send new judge ID
+        nextJudgeNickname: game.players.find(p => p.id === game.currentJudgeId).nickname
       });
+      
       game.gameState = 'LOBBY';
       game.submissions = {};
     }
@@ -242,10 +261,31 @@ io.on('connection', (socket) => {
         game.players.splice(playerIndex, 1);
         
         // Add system message for player leaving
-        game.chatMessages.push({ nickname: 'System', message: `${disconnectedPlayer.nickname} left the game.`, timestamp: Date.now() });
+        const leaveMsg = { nickname: 'System', message: `${disconnectedPlayer.nickname} left the game.`, timestamp: Date.now() };
+        game.chatMessages.push(leaveMsg);
+
+        // --- NEW: Handle judge leaving ---
+        // If the disconnected player was the judge, rotate the judge
+        if (disconnectedPlayer.id === game.currentJudgeId) {
+          game.judgeIndex = game.judgeIndex % game.players.length; // Ensure index is valid after splice
+          if (game.players.length > 0) {
+            game.currentJudgeId = game.players[game.judgeIndex].id;
+            game.chatMessages.push({ nickname: 'System', message: `The new judge is ${game.players[game.judgeIndex].nickname}.`, timestamp: Date.now() });
+          } else {
+            // No players left, clear judge
+            game.currentJudgeId = null;
+            game.judgeIndex = 0;
+          }
+        } else if (game.players.length > 0 && game.judgeIndex >= game.players.length) {
+            // If judge index is now out of bounds due to someone leaving (but not the judge)
+            game.judgeIndex = (game.judgeIndex - 1 + game.players.length) % game.players.length;
+            game.currentJudgeId = game.players[game.judgeIndex].id;
+        }
+        // ---------------------------------
 
         io.to(pin).emit('playerListUpdate', game.players);
-        io.to(pin).emit('chatHistory', game.chatMessages); // Update chat history for others
+        io.to(pin).emit('newMessage', leaveMsg); // Send leave message
+        io.to(pin).emit('judgeUpdate', game.currentJudgeId); // Let everyone know who the new judge is
       }
     });
   });

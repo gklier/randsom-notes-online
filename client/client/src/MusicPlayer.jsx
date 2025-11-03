@@ -1,58 +1,47 @@
 // --- client/src/MusicPlayer.jsx ---
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { Howl } from 'howler'; // <-- Import Howler
 
-// THIS IS THE NEW, WORKING LINK
+// The working music URL
 const musicUrl = "https://pixabay.com/music/vintage-smooth-instrumental-jazz-music-349777/";
+
+// Create the Howl object.
+// We use a ref to make sure it's only created once.
+let sound = null;
 
 function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef(null);
+
+  // Initialize the sound ref only if it's null
+  if (!sound) {
+    sound = new Howl({
+      src: [musicUrl],
+      html5: true,  // Forces HTML5 Audio, helps with browser policies
+      loop: true,   // We want it to loop
+      volume: 0.2,  // Start at a reasonable volume
+    });
+  }
 
   const togglePlay = () => {
-    // F12 Console Debug: Check that the click is firing
+    // F12 Console Debug
     console.log("Toggle play clicked. Current state:", isPlaying);
 
     if (isPlaying) {
-      // If it IS playing, we want to pause it
-      audioRef.current.pause();
+      sound.pause();
       setIsPlaying(false);
-      console.log("Music paused.");
+      console.log("Howler: Music paused.");
     } else {
-      // If it is NOT playing, we want to play it
-      
-      // 1. Force the audio element to load the media.
-      audioRef.current.load();
-      
-      // 2. Call play(), which returns a promise.
-      const playPromise = audioRef.current.play();
-
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          // Playback started successfully!
-          console.log("Playback started successfully.");
-          setIsPlaying(true);
-        }).catch(error => {
-          // Playback failed (e.g., browser block or other error)
-          console.error("Audio playback failed:", error);
-          
-          // Show an alert so the user knows there's an issue
-          alert("Could not play audio. Please check your browser's permissions or try clicking again.");
-          
-          setIsPlaying(false); // Ensure state is correct
-        });
-      }
+      // Howler handles all the complex promise/error logic internally
+      sound.play();
+      setIsPlaying(true);
+      console.log("Howler: Music playing.");
     }
   };
 
   return (
     <div>
-      <audio 
-        ref={audioRef} 
-        src={musicUrl} 
-        loop 
-      />
-
+      {/* We no longer need the <audio> tag at all! */}
       <button className="music-player-button" onClick={togglePlay}>
         {isPlaying ? 'Mute Music' : 'Play Music'}
       </button>

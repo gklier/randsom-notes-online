@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import './App.css'; // <-- IMPORT THE NEW CSS FILE
 
 // Import our new screen components
 import HomeScreen from './HomeScreen';
@@ -11,7 +12,7 @@ import SubmissionScreen from './SubmissionScreen';
 import JudgingScreen from './JudgingScreen';
 
 // Connect to the server
-const socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:3001');
+const socket = io(import.meta.env.VITE_SERVER_URL);
 
 function App() {
   // gameState controls which "scene" is visible
@@ -22,7 +23,6 @@ function App() {
 
   useEffect(() => {
     // === CENTRAL LISTENERS ===
-    // These update the app state regardless of which component is showing
 
     // Host: Game is created
     socket.on('gameCreated', (game) => {
@@ -42,9 +42,13 @@ function App() {
     });
     
     // Player: A new round is starting
-    socket.on('newRound', ({ prompt, wordPool }) => {
-      // Store our personal word pool and the new prompt
-      setGameData(prevData => ({ ...prevData, prompt, wordPool }));
+    socket.on('newRound', ({ prompt, wordPool, randomFact }) => {
+      setGameData(prevData => ({ 
+        ...prevData, 
+        prompt, 
+        wordPool, 
+        randomFact 
+      }));
       setGameState('SUBMITTING');
     });
 
@@ -56,7 +60,14 @@ function App() {
     
     // All: Round is over, back to lobby
     socket.on('roundOver', ({ scores, ...rest }) => {
-      setGameData(prevData => ({ ...prevData, players: scores, ...rest }));
+      // We set 'prompt' and 'wordPool' to null to clean up
+      setGameData(prevData => ({ 
+        ...prevData, 
+        players: scores, 
+        prompt: null, 
+        wordPool: null, 
+        ...rest 
+      }));
       setGameState('LOBBY');
     });
 
@@ -79,7 +90,6 @@ function App() {
   }, []);
 
   // === RENDER LOGIC (The "Router") ===
-  // This function decides which component to show
   const renderScene = () => {
     switch (gameState) {
       case 'HOME':

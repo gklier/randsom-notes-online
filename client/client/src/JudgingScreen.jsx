@@ -26,9 +26,14 @@ function JudgingScreen({ socket, gameData }) {
 
       <h4>Submissions:</h4>
       {submissions.map(sub => (
-        <div key={sub.id} style={{ border: '1Gpx solid black', padding: '10px', margin: '10px' }}>
+        <div key={sub.id} style={{ border: '1px solid black', padding: '10px', margin: '10px' }}>
           <p><strong>{sub.nickname}'s answer:</strong></p>
-          <h3>"{sub.answer}"</h3>
+          {/* Apply the same ransom-note style to the answers */}
+          <div className="submission-area">
+            {sub.answer.split(' ').map((word, index) => (
+              <button key={index} style={{ cursor: 'default' }}>{word}</button>
+            ))}
+          </div>
           
           {isHost && (
             <button onClick={() => handleSelectWinner(sub.id)}>

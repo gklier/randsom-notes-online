@@ -15,7 +15,7 @@ function LobbyScreen({ socket, gameData }) {
       <h3>Game PIN: {gameData.pin}</h3>
       
       {gameData.winnerNickname && (
-        <div style={{ background: '#eee', padding: '10px', margin: '10px' }}>
+        <div className="winner-box">
           <h4>Last Round's Winner: {gameData.winnerNickname}</h4>
           <p>"{gameData.winningAnswer}"</p>
         </div>

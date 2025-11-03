@@ -5,9 +5,32 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 
-// Load our default words and prompts
-const defaultPrompts = require('./prompts.json');
-const defaultWords = require('./words.json');
+// Load ALL our packs at the start
+const promptsNSFW = require('./prompts-nsfw.json');
+const wordsNSFW = require('./words-nsfw.json');
+const promptsFamily = require('./prompts-family.json');
+const wordsFamily = require('./words-family.json');
+const factsFamily = require('./facts-family.json');
+const factsNSFW = require('./facts-nsfw.json');
+
+// A helper object to find the right pack
+const defaultPacks = {
+  nsfw: {
+    prompts: promptsNSFW.all,
+    words: wordsNSFW
+  },
+  family: {
+    prompts: promptsFamily.all,
+    words: wordsFamily
+  }
+};
+
+// A helper object for facts
+const factPacks = {
+  family: factsFamily,
+  nsfw: factsNSFW,
+  custom: factsNSFW // Default to nsfw facts for custom games
+};
 
 const app = express();
 app.use(cors());
@@ -30,25 +53,30 @@ io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
   // --- 1. HOST CREATES A GAME ---
-  // Host sends custom words and prompts
-  socket.on('createGame', ({ customPrompts, customWords, useDefault }) => {
+  socket.on('createGame', ({ customPrompts, customWords, defaultPack }) => {
     const roomPIN = Math.floor(1000 + Math.random() * 9000).toString();
     
-    let gamePrompts = customPrompts;
-    let gameWords = customWords;
+    let gamePrompts, gameWords, packName;
 
-    // If the host wants to use defaults (or sent empty lists)
-    if (useDefault || (!customPrompts?.length) || (!customWords?.length)) {
-      gamePrompts = defaultPrompts.all; // Use the 'all' category from your JSON
-      gameWords = defaultWords;
+    if (defaultPack && defaultPacks[defaultPack]) {
+      // Load from a selected default pack
+      gamePrompts = [...defaultPacks[defaultPack].prompts]; // Use a copy!
+      gameWords = defaultPacks[defaultPack].words;
+      packName = defaultPack;
+    } else {
+      // Load from custom inputs
+      gamePrompts = customPrompts;
+      gameWords = customWords;
+      packName = 'custom';
     }
 
     games[roomPIN] = {
       hostId: socket.id,
       pin: roomPIN,
       players: [{ id: socket.id, nickname: 'Host', score: 0 }],
-      prompts: gamePrompts, // Store the custom prompts
-      words: gameWords,     // Store the custom words
+      prompts: gamePrompts,
+      words: gameWords,
+      packName: packName,
       gameState: 'LOBBY',
       submissions: {},
       currentPrompt: '',
@@ -87,8 +115,12 @@ io.on('connection', (socket) => {
       
       // 1. Pick a random prompt from the game's stored list
       const promptIndex = Math.floor(Math.random() * game.prompts.length);
-      const prompt = game.prompts.splice(promptIndex, 1)[0]; // Pick and remove prompt
+      const prompt = game.prompts.splice(promptIndex, 1)[0];
       game.currentPrompt = prompt;
+      
+      // Pick a random fact based on the game's pack
+      const factList = factPacks[game.packName] || factPacks.nsfw;
+      const randomFact = factList[Math.floor(Math.random() * factList.length)];
 
       // 2. For each player, generate a random word pool from the game's stored list
       game.players.forEach(player => {
@@ -98,6 +130,7 @@ io.on('connection', (socket) => {
         io.to(player.id).emit('newRound', {
           prompt: prompt,
           wordPool: wordPool,
+          randomFact: randomFact
         });
       });
       
@@ -153,12 +186,12 @@ io.on('connection', (socket) => {
     // Find which game the player was in and remove them
     Object.keys(games).forEach(pin => {
       const game = games[pin];
+      if (!game || !game.players) return; // Add a check
+      
       const playerIndex = game.players.findIndex(p => p.id === socket.id);
       
       if (playerIndex > -1) {
         game.players.splice(playerIndex, 1);
-        // If host disconnects, you could end the game
-        // For now, just update the player list
         io.to(pin).emit('playerListUpdate', game.players);
       }
     });

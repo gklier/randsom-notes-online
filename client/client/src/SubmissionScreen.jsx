@@ -1,11 +1,22 @@
 // --- client/src/SubmissionScreen.jsx ---
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function SubmissionScreen({ socket, gameData }) {
   const [myAnswer, setMyAnswer] = useState([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [availableWords, setAvailableWords] = useState(gameData.wordPool);
+  
+  // Initialize availableWords from gameData.wordPool
+  // This ensures it resets every round
+  const [availableWords, setAvailableWords] = useState(gameData.wordPool || []);
+
+  // This effect runs if the gameData.wordPool changes (e.g., new round)
+  useEffect(() => {
+    setAvailableWords(gameData.wordPool || []);
+    setMyAnswer([]);
+    setIsSubmitted(false);
+  }, [gameData.wordPool]);
+
 
   const addWord = (word, index) => {
     setMyAnswer([...myAnswer, word]);
@@ -31,20 +42,27 @@ function SubmissionScreen({ socket, gameData }) {
   };
 
   if (isSubmitted) {
-    return <div><h3>Submission sent!</h3><p>Waiting for other players...</p></div>;
+    return (
+      <div className="waiting-box">
+        <h3>Submission sent!</h3>
+        <p>Waiting for other players...</p>
+        <hr />
+        <h4>Random Fact:</h4>
+        <p>{gameData.randomFact}</p>
+      </div>
+    );
   }
 
   return (
     <div>
       <h2>The Prompt:</h2>
       <h3 style={{ color: 'blue' }}>{gameData.prompt}</h3>
-
       <hr />
       
       <h4>Your Answer:</h4>
-      <div style={{ border: '1px solid #ccc', minHeight: '50px', padding: '10px' }}>
+      <div className="submission-area">
         {myAnswer.map((word, index) => (
-          <button key={index} onClick={() => removeWord(word, index)} style={{ margin: '2px', background: 'lightgreen' }}>
+          <button key={index} onClick={() => removeWord(word, index)}>
             {word}
           </button>
         ))}
@@ -56,9 +74,9 @@ function SubmissionScreen({ socket, gameData }) {
       <hr />
 
       <h4>Your Word Pool:</h4>
-      <div style={{ background: '#f4f4f4', padding: '10px' }}>
+      <div className="word-pool">
         {availableWords.map((word, index) => (
-          <button key={index} onClick={() => addWord(word, index)} style={{ margin: '2px' }}>
+          <button key={index} onClick={() => addWord(word, index)}>
             {word}
           </button>
         ))}

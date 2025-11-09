@@ -52,11 +52,12 @@ const defaultPacks = {
     prompts: promptsFamily.all,
     words: wordsFamily
   },
-  nsfw: {
+  research: {
     prompts: promptsResearch.all,
     words: wordsResearch
   }
 };
+
 
 // A helper object for jokes
 const jokePacks = {

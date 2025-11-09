@@ -1,5 +1,4 @@
-{
-  "words": [
+[
     "idea", "concept", "fact", "reason", "evidence", "pattern", "problem", "solution", "process", "system",
     "function", "relationship", "structure", "material", "experiment", "team", "group", "individual", "community",
     "goal", "challenge", "change", "development", "discovery", "theory", "model", "hypothesis", "variable",
@@ -61,5 +60,4 @@
     "snuggle", "taco", "banana", "waffle", "pudding", "marshmallow", "muffin", "gummy", "pancake", "sprinkle",
     "cupcake", "cheese", "fizz", "mumble", "bloopity", "wigglet", "squiggle", "peanut", "doodlebug", "muffintop",
     "snugglebug", "waffletown", "zoodle", "fluffernoodle"
-  ]
-}
+]

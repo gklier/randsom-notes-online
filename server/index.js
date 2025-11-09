@@ -52,7 +52,7 @@ const defaultPacks = {
     prompts: promptsFamily.all,
     words: wordsFamily
   },
-  Research: {
+  research: {
     prompts: promptsResearch.all,
     words: wordsResearch
   }

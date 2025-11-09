@@ -125,7 +125,6 @@ io.on('connection', (socket) => {
   // -------------------------------------
 
   // 1. HOST CREATES A GAME
-  console.log('Received createGame for', defaultPack);
   socket.on('createGame', ({ customPrompts, customWords, defaultPack, hostNickname }) => {
     const roomPIN = Math.floor(1000 + Math.random() * 9000).toString();
     let gamePrompts, gameWords, packName;

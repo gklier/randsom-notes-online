@@ -23,7 +23,6 @@ function CreateGameScreen({ socket, onBack }) {
     socket.emit('createGame', { customPrompts, customWords, hostNickname }); // <-- PASS NICKNAME
   };
 
-  console.log('Creating game with pack:', packName);
   const handleCreateDefault = (packName) => {
     if (!hostNickname) { // <-- NEW CHECK
       alert('Please enter your nickname');

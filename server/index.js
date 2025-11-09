@@ -13,6 +13,9 @@ const promptsFamily = require('./prompts-family.json');
 const wordsFamily = require('./words-family.json');
 const jokesFamily = require('./jokes-family.json');
 const jokesNSFW = require('./jokes-nsfw.json');
+const promptsResearch = require('./prompts-research.json')
+const wordsResearch = require('./words-research.json')
+const jokesResearch = require('./jokes-research.json')
 
 // --- DATABASE SETUP ---
 const pool = new Pool({
@@ -48,6 +51,10 @@ const defaultPacks = {
   family: {
     prompts: promptsFamily.all,
     words: wordsFamily
+  },
+  Research: {
+    prompts: promptsResearch.all,
+    words: wordsResearch
   }
 };
 
@@ -55,6 +62,7 @@ const defaultPacks = {
 const jokePacks = {
   family: jokesFamily,
   nsfw: jokesNSFW,
+  research: jokesResearch,
   custom: jokesNSFW
 };
 

@@ -76,6 +76,9 @@ function CreateGameScreen({ socket, onBack }) {
         <button onClick={() => handleCreateDefault('family')}>
           Start Family-Friendly Game
         </button>
+        <button onClick={() => handleCreateDefault('research')}>
+          Start Research Game
+        </button>
         <button onClick={() => handleCreateDefault('nsfw')}>
           Start NSFW (CAH-Style) Game
         </button>

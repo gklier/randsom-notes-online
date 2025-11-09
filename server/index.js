@@ -52,7 +52,7 @@ const defaultPacks = {
     prompts: promptsFamily.all,
     words: wordsFamily
   },
-  research: {
+  nsfw: {
     prompts: promptsResearch.all,
     words: wordsResearch
   }

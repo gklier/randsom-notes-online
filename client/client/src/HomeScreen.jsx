@@ -86,7 +86,7 @@ function HomeScreen({ socket, onGoToCreate }) {
 
       {/* --- REPORT BUG SECTION --- */}
       <div style={{textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem'}}>
-        <a href="mailto:gklier@example.com?subject=Ransom Notes Bug Report" style={{color: '#999'}}>
+        <a href="mailto:bugs@ransomnotes.online?subject=Ransom Notes Bug Report" style={{color: '#999'}}>
           Found a bug? Report it here.
         </a>
       </div>

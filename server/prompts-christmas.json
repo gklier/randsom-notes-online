@@ -1,4 +1,5 @@
-[
+{
+   "all": [
   "Write a letter to Santa explaining why you were actually 'nice' this year.",
   "What do the reindeer really do when Santa isn't looking?",
   "The worst Christmas gift you could possibly receive.",
@@ -15,3 +16,4 @@
   "The worst place to hang mistletoe.",
   "What you really want for Christmas but are afraid to ask for."
 ]
+}

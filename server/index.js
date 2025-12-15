@@ -7,6 +7,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 
 // --- LOAD PACK FILES ---
+// Ensure these files exist in your server directory
 const promptsNSFW = require('./prompts-nsfw.json');
 const wordsNSFW = require('./words-nsfw.json');
 const promptsFamily = require('./prompts-family.json');
@@ -40,18 +41,20 @@ const createSuggestionTable = async () => {
 };
 
 // --- DEFAULT PACKS ---
+// Updated to robustly handle arrays vs objects
 const defaultPacks = {
   nsfw: {
-    prompts: promptsNSFW.all,
-    words: wordsNSFW
+    prompts: Array.isArray(promptsNSFW) ? promptsNSFW : promptsNSFW.all,
+    words: Array.isArray(wordsNSFW) ? wordsNSFW : (wordsNSFW.all || wordsNSFW)
   },
   family: {
-    prompts: promptsFamily.all,
-    words: wordsFamily
+    prompts: Array.isArray(promptsFamily) ? promptsFamily : promptsFamily.all,
+    words: Array.isArray(wordsFamily) ? wordsFamily : (wordsFamily.all || wordsFamily)
   },
   research: {
-    prompts: promptsResearch.all || promptsResearch,
-    words: wordsResearch
+    // Robust check: use .all if it exists, otherwise assume the file itself is the array
+    prompts: Array.isArray(promptsResearch) ? promptsResearch : (promptsResearch.all || []),
+    words: Array.isArray(wordsResearch) ? wordsResearch : (wordsResearch.all || wordsResearch || [])
   }
 };
 
@@ -76,6 +79,8 @@ const io = new Server(server, {
 const games = {};
 
 function getRandomWords(wordList, count) {
+  // Safe check to ensure wordList is an array before sorting
+  if (!Array.isArray(wordList)) return [];
   const shuffled = [...wordList].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
 }
@@ -177,19 +182,25 @@ io.on('connection', (socket) => {
   // --- START ROUND ---
   socket.on('startGame', ({ pin }) => {
     const game = games[pin];
+    // Check if game exists and requester is the judge
     if (!game || game.currentJudgeId !== socket.id) return;
 
+    // Check if prompts exist
     if (!game.prompts || game.prompts.length === 0) {
-      io.to(socket.id).emit('errorMessage', 'No prompts available for this pack.');
+      io.to(socket.id).emit('errorMessage', 'No prompts available for this pack (or you ran out!).');
       return;
     }
 
+    // Pick a prompt
     const promptIndex = Math.floor(Math.random() * game.prompts.length);
     const prompt = game.prompts.splice(promptIndex, 1)[0];
     game.currentPrompt = prompt;
 
+    // Pick a joke
     const jokeList = jokePacks[game.packName] || jokePacks.nsfw;
-    const randomJoke = jokeList[Math.floor(Math.random() * jokeList.length)];
+    // Fallback if jokeList is undefined
+    const safeJokeList = Array.isArray(jokeList) ? jokeList : ["Why did the chicken cross the road? To get to the other side."];
+    const randomJoke = safeJokeList[Math.floor(Math.random() * safeJokeList.length)];
 
     game.players.forEach(player => {
       const wordPool = getRandomWords(game.words, 75);
@@ -208,6 +219,7 @@ io.on('connection', (socket) => {
     game.submissions[socket.id] = answer;
     io.to(game.currentJudgeId).emit('playerSubmitted', socket.id);
 
+    // Check if everyone (except judge) has submitted
     const playersSubmitting = game.players.filter(p => p.id !== game.currentJudgeId);
     if (Object.keys(game.submissions).length === playersSubmitting.length) {
       game.gameState = 'JUDGING';
@@ -228,6 +240,7 @@ io.on('connection', (socket) => {
     const winner = game.players.find(p => p.id === winnerId);
     if (winner) winner.score++;
 
+    // Rotate judge
     game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
     game.currentJudgeId = game.players[game.judgeIndex].id;
 

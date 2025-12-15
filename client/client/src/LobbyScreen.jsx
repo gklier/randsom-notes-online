@@ -17,25 +17,28 @@ const RansomText = ({ text }) => {
 
 function LobbyScreen({ socket, gameData }) {
   // `isJudge` will now determine who can start the round
-  const isJudge = socket.id === gameData.currentJudgeId; // <-- UPDATED
+  const isJudge = socket.id === gameData.currentJudgeId;
   const [chatMessages, setChatMessages] = useState(gameData.chatMessages || []);
   const [chatInput, setChatInput] = useState('');
   const chatMessagesEndRef = useRef(null);
 
   // Derive current player nickname from gameData.players
   const currentPlayerNickname = gameData.players.find(p => p.id === socket.id)?.nickname || 'Guest';
-  const currentJudgeNickname = gameData.players.find(p => p.id === gameData.currentJudgeId)?.nickname || 'Nobody'; // <-- NEW
+  const currentJudgeNickname = gameData.players.find(p => p.id === gameData.currentJudgeId)?.nickname || 'Nobody';
 
   useEffect(() => {
     socket.on('newMessage', (message) => {
       setChatMessages((prevMessages) => [...prevMessages, message]);
     });
 
-    // The server will send a full `gameCreated` or `joinSuccess` with initial chat
-    // and `roundOver` will update gameData, which will have new chat messages.
+    // --- NEW: Listen for error messages from server ---
+    socket.on('errorMessage', (msg) => {
+      alert(msg); // Alert user if start game fails (e.g. no prompts found)
+    });
 
     return () => {
       socket.off('newMessage');
+      socket.off('errorMessage');
     };
   }, [socket]);
 
@@ -57,7 +60,7 @@ function LobbyScreen({ socket, gameData }) {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '2rem' }}>
+    <div style={{ display: 'flex', gap: '2rem' }} className="lobby-container">
       {/* Left Column: Game Info */}
       <div style={{ flex: 2 }}>
         <h2>Game Lobby</h2>
@@ -70,7 +73,7 @@ function LobbyScreen({ socket, gameData }) {
           </div>
         )}
 
-        {/* --- NEW: Display Current Judge --- */}
+        {/* --- Display Current Judge --- */}
         <h3>👑 Current Judge: {currentJudgeNickname}</h3>
 
         <h4>Players:</h4>
@@ -78,8 +81,8 @@ function LobbyScreen({ socket, gameData }) {
           {gameData.players.map(player => (
             <li key={player.id}>
               {player.nickname}
-              {player.id === gameData.hostId ? ' (Original Host)' : ''} {/* Clarify who the original host is */}
-              {player.id === gameData.currentJudgeId ? ' (Judge)' : ''} {/* Show who the current judge is */}
+              {player.id === gameData.hostId ? ' (Original Host)' : ''}
+              {player.id === gameData.currentJudgeId ? ' (Judge)' : ''}
               {' - '}
               Score: {player.score}
             </li>

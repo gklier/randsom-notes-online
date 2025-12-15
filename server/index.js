@@ -7,7 +7,6 @@ const cors = require('cors');
 const { Pool } = require('pg');
 
 // --- LOAD PACK FILES ---
-// Ensure these files exist in your server directory
 const promptsNSFW = require('./prompts-nsfw.json');
 const wordsNSFW = require('./words-nsfw.json');
 const promptsFamily = require('./prompts-family.json');
@@ -17,6 +16,10 @@ const jokesNSFW = require('./jokes-nsfw.json');
 const promptsResearch = require('./prompts-research.json');
 const wordsResearch = require('./words-research.json');
 const jokesResearch = require('./jokes-research.json');
+// --- NEW CHRISTMAS PACKS ---
+const promptsChristmas = require('./prompts-christmas.json');
+const wordsChristmas = require('./words-christmas.json');
+const jokesChristmas = require('./jokes-christmas.json');
 
 // --- DATABASE SETUP ---
 const pool = new Pool({
@@ -41,7 +44,6 @@ const createSuggestionTable = async () => {
 };
 
 // --- DEFAULT PACKS ---
-// Updated to robustly handle arrays vs objects
 const defaultPacks = {
   nsfw: {
     prompts: Array.isArray(promptsNSFW) ? promptsNSFW : promptsNSFW.all,
@@ -52,9 +54,12 @@ const defaultPacks = {
     words: Array.isArray(wordsFamily) ? wordsFamily : (wordsFamily.all || wordsFamily)
   },
   research: {
-    // Robust check: use .all if it exists, otherwise assume the file itself is the array
     prompts: Array.isArray(promptsResearch) ? promptsResearch : (promptsResearch.all || []),
     words: Array.isArray(wordsResearch) ? wordsResearch : (wordsResearch.all || wordsResearch || [])
+  },
+  christmas: { // <-- NEW CHRISTMAS PACK
+    prompts: Array.isArray(promptsChristmas) ? promptsChristmas : (promptsChristmas.all || []),
+    words: Array.isArray(wordsChristmas) ? wordsChristmas : (wordsChristmas.all || wordsChristmas || [])
   }
 };
 
@@ -63,7 +68,8 @@ const jokePacks = {
   family: jokesFamily,
   nsfw: jokesNSFW,
   research: jokesResearch,
-  custom: jokesNSFW
+  christmas: jokesChristmas, // <-- NEW
+  custom: jokesFamily // <-- CHANGED from jokesNSFW to jokesFamily based on feedback
 };
 
 // --- EXPRESS + SOCKET.IO SERVER ---
@@ -79,7 +85,6 @@ const io = new Server(server, {
 const games = {};
 
 function getRandomWords(wordList, count) {
-  // Safe check to ensure wordList is an array before sorting
   if (!Array.isArray(wordList)) return [];
   const shuffled = [...wordList].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
@@ -107,7 +112,6 @@ app.post('/submit-suggestion', async (req, res) => {
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // --- LOBBY CHAT HANDLING ---
   socket.on('sendMessage', ({ pin, nickname, message }) => {
     const game = games[pin];
     if (game && game.players.some(p => p.id === socket.id)) {
@@ -117,7 +121,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // --- CREATE GAME ---
   socket.on('createGame', ({ customPrompts, customWords, defaultPack, hostNickname }) => {
     console.log('Received createGame for:', defaultPack);
 
@@ -158,7 +161,6 @@ io.on('connection', (socket) => {
     socket.emit('gameCreated', games[roomPIN]);
   });
 
-  // --- JOIN GAME ---
   socket.on('joinGame', ({ pin, nickname }) => {
     const game = games[pin];
     if (!game) return socket.emit('joinError', 'Game not found');
@@ -179,26 +181,20 @@ io.on('connection', (socket) => {
     io.to(pin).emit('newMessage', joinMsg);
   });
 
-  // --- START ROUND ---
   socket.on('startGame', ({ pin }) => {
     const game = games[pin];
-    // Check if game exists and requester is the judge
     if (!game || game.currentJudgeId !== socket.id) return;
 
-    // Check if prompts exist
     if (!game.prompts || game.prompts.length === 0) {
       io.to(socket.id).emit('errorMessage', 'No prompts available for this pack (or you ran out!).');
       return;
     }
 
-    // Pick a prompt
     const promptIndex = Math.floor(Math.random() * game.prompts.length);
     const prompt = game.prompts.splice(promptIndex, 1)[0];
     game.currentPrompt = prompt;
 
-    // Pick a joke
-    const jokeList = jokePacks[game.packName] || jokePacks.nsfw;
-    // Fallback if jokeList is undefined
+    const jokeList = jokePacks[game.packName] || jokePacks.family; // Default fallback to family now
     const safeJokeList = Array.isArray(jokeList) ? jokeList : ["Why did the chicken cross the road? To get to the other side."];
     const randomJoke = safeJokeList[Math.floor(Math.random() * safeJokeList.length)];
 
@@ -211,7 +207,6 @@ io.on('connection', (socket) => {
     game.submissions = {};
   });
 
-  // --- SUBMIT ANSWER ---
   socket.on('submitAnswer', ({ pin, answer }) => {
     const game = games[pin];
     if (!game || game.gameState !== 'SUBMITTING') return;
@@ -219,7 +214,6 @@ io.on('connection', (socket) => {
     game.submissions[socket.id] = answer;
     io.to(game.currentJudgeId).emit('playerSubmitted', socket.id);
 
-    // Check if everyone (except judge) has submitted
     const playersSubmitting = game.players.filter(p => p.id !== game.currentJudgeId);
     if (Object.keys(game.submissions).length === playersSubmitting.length) {
       game.gameState = 'JUDGING';
@@ -232,7 +226,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // --- SELECT WINNER ---
   socket.on('selectWinner', ({ pin, winnerId }) => {
     const game = games[pin];
     if (!game || game.currentJudgeId !== socket.id || game.gameState !== 'JUDGING') return;
@@ -240,7 +233,6 @@ io.on('connection', (socket) => {
     const winner = game.players.find(p => p.id === winnerId);
     if (winner) winner.score++;
 
-    // Rotate judge
     game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
     game.currentJudgeId = game.players[game.judgeIndex].id;
 
@@ -256,7 +248,6 @@ io.on('connection', (socket) => {
     game.submissions = {};
   });
 
-  // --- DISCONNECT ---
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
     Object.keys(games).forEach(pin => {
@@ -289,7 +280,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// --- START SERVER ---
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

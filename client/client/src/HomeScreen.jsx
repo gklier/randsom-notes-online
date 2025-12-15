@@ -17,7 +17,8 @@ function HomeScreen({ socket, onGoToCreate }) {
 
   return (
     <div>
-      <h1>Ransom Notes Online</h1>
+      {/* CHRISTMAS UPDATE: Added Santa Emoji */}
+      <h1>🎅 Ransom Notes Online 🎅</h1>
       
       {/* --- Section for Host --- */}
       <div>
@@ -73,7 +74,7 @@ function HomeScreen({ socket, onGoToCreate }) {
         <h4>Enjoying the game?</h4>
         <p style={{fontSize: '0.95rem', lineHeight: '1.6'}}>This project is free to play and ad-free. If you'd like to support the server costs, you can buy me a (virtual) coffee!</p>
         <a 
-          href="https://buymeacoffee.com/gklier" // <-- ⚠️ REPLACE 'YourName' WITH YOUR LINK
+          href="https://buymeacoffee.com/gklier" 
           target="_blank" 
           rel="noopener noreferrer"
         >
@@ -83,7 +84,12 @@ function HomeScreen({ socket, onGoToCreate }) {
         </a>
       </div>
 
-      {/* <SuggestionBox />  This was also temporarily commented out, uncomment if you want it back */}
+      {/* --- REPORT BUG SECTION --- */}
+      <div style={{textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem'}}>
+        <a href="mailto:gklier@example.com?subject=Ransom Notes Bug Report" style={{color: '#999'}}>
+          Found a bug? Report it here.
+        </a>
+      </div>
 
     </div>
   );

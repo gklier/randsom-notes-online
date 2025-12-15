@@ -7,9 +7,10 @@
 
 body {
   margin: 0;
-  font-family: 'Special Elite', monospace; /* Use our new font! */
-  background-color: #f0e9d6; /* A tan, old-paper color */
-  background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png'); /* Subtle paper texture */
+  font-family: 'Special Elite', monospace;
+  /* CHRISTMAS THEME: Deep Red with the paper texture creates a "Wrapping Paper" look */
+  background-color: #a81010; 
+  background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
   color: #333;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

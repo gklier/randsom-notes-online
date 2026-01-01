@@ -197,6 +197,25 @@ textarea {
   color: #000;
 }
 
+/* --- NEW: MAIN MENU BUTTON --- */
+.home-button {
+  position: absolute; /* Sticks to the corner */
+  top: 10px;
+  left: 10px;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  z-index: 10; /* On top of everything */
+  background: #fff;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.home-button:hover {
+  background: #eee;
+  color: #d42426; /* Red text on hover to indicate "Leaving" */
+  border-color: #d42426;
+}
+
 /* --- INSTRUCTIONS BOX --- */
 .instructions-box {
   border: 2px dashed #aaa;

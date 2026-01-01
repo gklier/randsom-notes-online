@@ -19,7 +19,6 @@ function App() {
 
   useEffect(() => {
     // === AUTO-REJOIN LOGIC ===
-    // Check if we have a saved session in browser storage
     const savedSession = sessionStorage.getItem('ransom_session');
     if (savedSession) {
       try {
@@ -31,22 +30,17 @@ function App() {
         sessionStorage.removeItem('ransom_session');
       }
     }
-    // ==========================
 
     socket.on('gameCreated', (game) => {
       setGameData(game);
       setGameState('LOBBY');
-      // Save session for host too
       const myNick = game.players.find(p => p.id === socket.id)?.nickname;
       if (myNick) sessionStorage.setItem('ransom_session', JSON.stringify({ pin: game.pin, nickname: myNick }));
     });
 
     socket.on('joinSuccess', (game) => {
       setGameData(game);
-      // If game is in progress, we might want to show lobby (waiting) instead of breaking
-      setGameState('LOBBY'); 
-      
-      // Save session so if they refresh, they come back here
+      setGameState(game.gameState); 
       const myNick = game.players.find(p => p.id === socket.id)?.nickname;
       if (myNick) sessionStorage.setItem('ransom_session', JSON.stringify({ pin: game.pin, nickname: myNick }));
     });
@@ -82,12 +76,13 @@ function App() {
     });
 
     socket.on('joinError', (message) => {
-      // If auto-join fails, clear the session so we don't loop forever
       sessionStorage.removeItem('ransom_session');
-      
-      // Only alert if we aren't just loading the page (avoids annoying popups if session expired)
       if (gameState !== 'HOME') alert(message); 
       setGameState('HOME');
+    });
+    
+    socket.on('judgeUpdate', (newJudgeId) => {
+       setGameData(prevData => ({ ...prevData, currentJudgeId: newJudgeId }));
     });
 
     return () => {
@@ -98,8 +93,21 @@ function App() {
       socket.off('showSubmissions');
       socket.off('roundOver');
       socket.off('joinError');
+      socket.off('judgeUpdate');
     };
   }, []);
+
+  // --- NEW: Handle "Emergency Exit" ---
+  const handleReturnHome = () => {
+    // We ask for confirmation so they don't misclick it
+    const confirmLeave = window.confirm("Are you sure you want to exit to the Main Menu? You will leave the current game.");
+    if (confirmLeave) {
+      // 1. Clear the session so the app doesn't immediately try to auto-rejoin
+      sessionStorage.removeItem('ransom_session');
+      // 2. Force a hard reload to clear memory and socket state
+      window.location.reload();
+    }
+  };
 
   const renderScene = () => {
     switch (gameState) {
@@ -126,7 +134,16 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Music Player is Top-Right */}
       <MusicPlayer />
+
+      {/* NEW: Home Button is Top-Left (Only show if NOT on home screen) */}
+      {gameState !== 'HOME' && (
+        <button className="home-button" onClick={handleReturnHome}>
+          🏠 Main Menu
+        </button>
+      )}
+
       {renderScene()}
     </div>
   );

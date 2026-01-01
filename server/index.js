@@ -62,7 +62,6 @@ const defaultPacks = {
   }
 };
 
-// --- JOKE PACKS ---
 const jokePacks = {
   family: jokesFamily,
   nsfw: jokesNSFW,
@@ -89,14 +88,11 @@ function getRandomWords(wordList, count) {
   return shuffled.slice(0, count);
 }
 
-// --- SUGGESTION ENDPOINT ---
 app.post('/submit-suggestion', async (req, res) => {
   const { suggestion } = req.body;
   if (!suggestion) return res.status(400).send({ message: 'Suggestion text is required.' });
-
   try {
     await pool.query('INSERT INTO suggestions(suggestion_text) VALUES($1)', [suggestion]);
-    console.log('Suggestion saved to database');
     res.status(200).send({ message: 'Suggestion sent successfully!' });
   } catch (error) {
     console.error('Error saving suggestion:', error);
@@ -104,7 +100,6 @@ app.post('/submit-suggestion', async (req, res) => {
   }
 });
 
-// --- SOCKET.IO GAME LOGIC ---
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
@@ -118,15 +113,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('createGame', ({ customPrompts, customWords, defaultPack, hostNickname }) => {
-    console.log('Received createGame for:', defaultPack);
-
     const roomPIN = Math.floor(1000 + Math.random() * 9000).toString();
     let gamePrompts, gameWords, packName;
     const nickname = hostNickname || 'Host';
-
-    const initialChatMessages = [
-      { nickname: 'System', message: `${nickname} created the game!`, timestamp: Date.now() }
-    ];
 
     if (defaultPack && defaultPacks[defaultPack]) {
       gamePrompts = [...defaultPacks[defaultPack].prompts];
@@ -148,7 +137,7 @@ io.on('connection', (socket) => {
       gameState: 'LOBBY',
       submissions: {},
       currentPrompt: '',
-      chatMessages: initialChatMessages,
+      chatMessages: [{ nickname: 'System', message: `${nickname} created the game!`, timestamp: Date.now() }],
       judgeIndex: 0,
       currentJudgeId: socket.id
     };
@@ -161,12 +150,41 @@ io.on('connection', (socket) => {
     const game = games[pin];
     if (!game) return socket.emit('joinError', 'Game not found');
 
-    if (game.players.some(p => p.nickname.toLowerCase() === nickname.toLowerCase())) {
-      // NOTE: We allow re-joining if the socket ID matches (reconnect), but mostly this blocks dupes.
-      // If a user refreshed, they have a NEW socket ID, so they might be blocked if their old socket hasn't timed out.
-      // However, usually disconnect fires immediately.
-      return socket.emit('joinError', 'Nickname already in use in this game.');
+    // --- RECONNECTION / NICKNAME TAKEOVER LOGIC ---
+    const existingPlayerIndex = game.players.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
+    
+    if (existingPlayerIndex !== -1) {
+      // User is rejoining with the same name. Update their socket ID.
+      const oldSocketId = game.players[existingPlayerIndex].id;
+      
+      // Update Player ID
+      game.players[existingPlayerIndex].id = socket.id;
+
+      // Update Host ID if they were host
+      if (game.hostId === oldSocketId) {
+        game.hostId = socket.id;
+      }
+
+      // Update Judge ID if they were judge
+      if (game.currentJudgeId === oldSocketId) {
+        game.currentJudgeId = socket.id;
+      }
+
+      // Restore Submissions (if any)
+      if (game.submissions[oldSocketId]) {
+        game.submissions[socket.id] = game.submissions[oldSocketId];
+        delete game.submissions[oldSocketId];
+      }
+
+      socket.join(pin);
+      socket.emit('joinSuccess', game);
+      io.to(pin).emit('playerListUpdate', game.players);
+      io.to(pin).emit('judgeUpdate', game.currentJudgeId);
+      
+      console.log(`User ${nickname} reconnected. ID updated from ${oldSocketId} to ${socket.id}`);
+      return; 
     }
+    // ---------------------------------------------
 
     const newPlayer = { id: socket.id, nickname, score: 0 };
     game.players.push(newPlayer);
@@ -227,23 +245,18 @@ io.on('connection', (socket) => {
 
   socket.on('selectWinner', ({ pin, winnerId }) => {
     const game = games[pin];
-    // Security check: Must be the judge and in judging phase
     if (!game || game.currentJudgeId !== socket.id || game.gameState !== 'JUDGING') return;
 
     const winner = game.players.find(p => p.id === winnerId);
+    if (winner) winner.score++;
     
-    // --- BUG FIX: Handle if winner is undefined (player left) ---
-    if (winner) {
-        winner.score++;
-    }
-    const winnerName = winner ? winner.nickname : "A Ghost 👻"; // Fallback name so server doesn't crash
-    // ------------------------------------------------------------
+    const winnerName = winner ? winner.nickname : "A Ghost 👻";
 
     game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
     game.currentJudgeId = game.players[game.judgeIndex].id;
 
     io.to(pin).emit('roundOver', {
-      winnerNickname: winnerName, // Use the safe variable
+      winnerNickname: winnerName,
       winningAnswer: game.submissions[winnerId],
       scores: game.players,
       currentJudgeId: game.currentJudgeId,
@@ -261,6 +274,8 @@ io.on('connection', (socket) => {
       if (!game || !game.players) return;
 
       const playerIndex = game.players.findIndex(p => p.id === socket.id);
+      
+      // If player not found, they might have already reconnected (ID changed), so we do nothing.
       if (playerIndex === -1) return;
 
       const disconnectedPlayer = game.players[playerIndex];
@@ -269,19 +284,28 @@ io.on('connection', (socket) => {
       const leaveMsg = { nickname: 'System', message: `${disconnectedPlayer.nickname} left the game.`, timestamp: Date.now() };
       game.chatMessages.push(leaveMsg);
 
+      // --- HANDLE JUDGE ROTATION ON DISCONNECT ---
+      // If the disconnected player was the judge, rotate judge
       if (disconnectedPlayer.id === game.currentJudgeId) {
+        game.judgeIndex = game.judgeIndex % game.players.length; // Ensure index is valid after splice
         if (game.players.length > 0) {
-          game.judgeIndex = game.judgeIndex % game.players.length;
           game.currentJudgeId = game.players[game.judgeIndex].id;
+          game.chatMessages.push({ nickname: 'System', message: `The new judge is ${game.players[game.judgeIndex].nickname}.`, timestamp: Date.now() });
         } else {
+          // No players left, clear judge
           game.currentJudgeId = null;
           game.judgeIndex = 0;
         }
+      } else if (game.players.length > 0 && game.judgeIndex >= game.players.length) {
+          // If judge index is now out of bounds due to someone leaving (but not the judge)
+          game.judgeIndex = (game.judgeIndex - 1 + game.players.length) % game.players.length;
+          game.currentJudgeId = game.players[game.judgeIndex].id;
       }
+      // ---------------------------------
 
       io.to(pin).emit('playerListUpdate', game.players);
-      io.to(pin).emit('newMessage', leaveMsg);
-      io.to(pin).emit('judgeUpdate', game.currentJudgeId);
+      io.to(pin).emit('newMessage', leaveMsg); // Send leave message
+      io.to(pin).emit('judgeUpdate', game.currentJudgeId); // Let everyone know who the new judge is
     });
   });
 });

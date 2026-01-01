@@ -100,6 +100,29 @@ app.post('/submit-suggestion', async (req, res) => {
   }
 });
 
+// --- HELPER: CHECK IF ROUND IS COMPLETE ---
+// We check if all CONNECTED players (except judge) have submitted
+function checkRoundComplete(game, io) {
+    if (game.gameState !== 'SUBMITTING') return;
+
+    const playersSubmitting = game.players.filter(p => 
+        p.id !== game.currentJudgeId && p.connected !== false
+    );
+    
+    // Check if we have enough submissions from ACTIVE players
+    const activeSubmissions = playersSubmitting.filter(p => game.submissions[p.id]);
+
+    if (activeSubmissions.length === playersSubmitting.length && playersSubmitting.length > 0) {
+      game.gameState = 'JUDGING';
+      io.to(game.pin).emit('showSubmissions', {
+        prompt: game.currentPrompt,
+        submissions: game.submissions,
+        players: game.players,
+        currentJudgeId: game.currentJudgeId
+      });
+    }
+}
+
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
@@ -130,7 +153,7 @@ io.on('connection', (socket) => {
     games[roomPIN] = {
       hostId: socket.id,
       pin: roomPIN,
-      players: [{ id: socket.id, nickname, score: 0 }],
+      players: [{ id: socket.id, nickname, score: 0, connected: true }],
       prompts: gamePrompts,
       words: gameWords,
       packName,
@@ -155,12 +178,15 @@ io.on('connection', (socket) => {
     const existingPlayerIndex = game.players.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
     
     if (existingPlayerIndex !== -1) {
-      // 1. Update Socket ID
+      // 1. Update Identity
       const oldSocketId = game.players[existingPlayerIndex].id;
       game.players[existingPlayerIndex].id = socket.id;
+      game.players[existingPlayerIndex].connected = true; // Mark as back online
 
       if (game.hostId === oldSocketId) game.hostId = socket.id;
       if (game.currentJudgeId === oldSocketId) game.currentJudgeId = socket.id;
+      
+      // Migrate submission if they had one
       if (game.submissions[oldSocketId]) {
         game.submissions[socket.id] = game.submissions[oldSocketId];
         delete game.submissions[oldSocketId];
@@ -168,31 +194,30 @@ io.on('connection', (socket) => {
 
       socket.join(pin);
 
-      // 2. PREPARE THE DATA BUNDLE (Crucial for Refresh Fix)
-      // We create a "Snapshot" of the game state specifically for this player
+      // 2. PREPARE THE DATA BUNDLE (Recover state)
       const responseData = { ...game };
       
-      // If we are in the middle of a round, inject the data NOW so the client doesn't wait
       if (game.gameState === 'SUBMITTING') {
          responseData.wordPool = game.players[existingPlayerIndex].currentWordPool || [];
-         responseData.prompt = game.currentPrompt; // Normalize name for Client
-         responseData.randomJoke = game.currentJoke; // Normalize name for Client
+         responseData.prompt = game.currentPrompt; 
+         responseData.randomJoke = game.currentJoke;
       } 
       else if (game.gameState === 'JUDGING') {
          responseData.prompt = game.currentPrompt;
-         // wordPool not needed for judging
       }
 
-      // 3. Emit Join Success with the BUNDLED data
       socket.emit('joinSuccess', responseData);
 
       io.to(pin).emit('playerListUpdate', game.players);
       io.to(pin).emit('judgeUpdate', game.currentJudgeId);
+      
+      // Check if this reconnection unblocks the round (rare, but possible)
+      checkRoundComplete(game, io);
       return; 
     }
     // -------------------------
 
-    const newPlayer = { id: socket.id, nickname, score: 0 };
+    const newPlayer = { id: socket.id, nickname, score: 0, connected: true };
     game.players.push(newPlayer);
     socket.join(pin);
 
@@ -224,7 +249,7 @@ io.on('connection', (socket) => {
 
     game.players.forEach(player => {
       const wordPool = getRandomWords(game.words, 75);
-      player.currentWordPool = wordPool; // Store magnets for reconnection
+      player.currentWordPool = wordPool;
       io.to(player.id).emit('newRound', { prompt, wordPool, randomJoke });
     });
 
@@ -238,17 +263,9 @@ io.on('connection', (socket) => {
 
     game.submissions[socket.id] = answer;
     io.to(game.currentJudgeId).emit('playerSubmitted', socket.id);
-
-    const playersSubmitting = game.players.filter(p => p.id !== game.currentJudgeId);
-    if (Object.keys(game.submissions).length === playersSubmitting.length) {
-      game.gameState = 'JUDGING';
-      io.to(pin).emit('showSubmissions', {
-        prompt: game.currentPrompt,
-        submissions: game.submissions,
-        players: game.players,
-        currentJudgeId: game.currentJudgeId
-      });
-    }
+    
+    // Use helper to check if everyone is done
+    checkRoundComplete(game, io);
   });
 
   socket.on('selectWinner', ({ pin, winnerId }) => {
@@ -284,29 +301,27 @@ io.on('connection', (socket) => {
       const playerIndex = game.players.findIndex(p => p.id === socket.id);
       if (playerIndex === -1) return;
 
-      const disconnectedPlayer = game.players[playerIndex];
-      game.players.splice(playerIndex, 1);
+      const player = game.players[playerIndex];
+      
+      // --- CHANGE: MARK AS OFFLINE INSTEAD OF DELETING ---
+      player.connected = false; 
 
-      const leaveMsg = { nickname: 'System', message: `${disconnectedPlayer.nickname} left the game.`, timestamp: Date.now() };
+      const leaveMsg = { nickname: 'System', message: `${player.nickname} disconnected.`, timestamp: Date.now() };
       game.chatMessages.push(leaveMsg);
 
-      if (disconnectedPlayer.id === game.currentJudgeId) {
-        game.judgeIndex = game.judgeIndex % game.players.length;
-        if (game.players.length > 0) {
-          game.currentJudgeId = game.players[game.judgeIndex].id;
-          game.chatMessages.push({ nickname: 'System', message: `The new judge is ${game.players[game.judgeIndex].nickname}.`, timestamp: Date.now() });
-        } else {
-          game.currentJudgeId = null;
-          game.judgeIndex = 0;
-        }
-      } else if (game.players.length > 0 && game.judgeIndex >= game.players.length) {
-          game.judgeIndex = (game.judgeIndex - 1 + game.players.length) % game.players.length;
-          game.currentJudgeId = game.players[game.judgeIndex].id;
+      // If Judge disconnects, we MUST rotate immediately
+      if (player.id === game.currentJudgeId) {
+        game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
+        game.currentJudgeId = game.players[game.judgeIndex].id;
+        game.chatMessages.push({ nickname: 'System', message: `Judge left. New judge: ${game.players[game.judgeIndex].nickname}`, timestamp: Date.now() });
+        io.to(pin).emit('judgeUpdate', game.currentJudgeId);
       }
+
+      // Check if the round should end now that this person is gone
+      checkRoundComplete(game, io);
 
       io.to(pin).emit('playerListUpdate', game.players);
       io.to(pin).emit('newMessage', leaveMsg);
-      io.to(pin).emit('judgeUpdate', game.currentJudgeId);
     });
   });
 });

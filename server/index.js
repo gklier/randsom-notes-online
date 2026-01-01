@@ -137,7 +137,7 @@ io.on('connection', (socket) => {
       gameState: 'LOBBY',
       submissions: {},
       currentPrompt: '',
-      currentJoke: '', // <-- NEW: Store joke
+      currentJoke: '',
       chatMessages: [{ nickname: 'System', message: `${nickname} created the game!`, timestamp: Date.now() }],
       judgeIndex: 0,
       currentJudgeId: socket.id
@@ -155,7 +155,7 @@ io.on('connection', (socket) => {
     const existingPlayerIndex = game.players.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
     
     if (existingPlayerIndex !== -1) {
-      // 1. Update IDs
+      // 1. Update Socket ID
       const oldSocketId = game.players[existingPlayerIndex].id;
       game.players[existingPlayerIndex].id = socket.id;
 
@@ -167,28 +167,24 @@ io.on('connection', (socket) => {
       }
 
       socket.join(pin);
-      socket.emit('joinSuccess', game);
 
-      // 2. CRITICAL FIX: RE-SEND STATE (Magnets/Submissions)
-      // If we are in the middle of a round, give the player their magnets back!
+      // 2. PREPARE THE DATA BUNDLE (Crucial for Refresh Fix)
+      // We create a "Snapshot" of the game state specifically for this player
+      const responseData = { ...game };
+      
+      // If we are in the middle of a round, inject the data NOW so the client doesn't wait
       if (game.gameState === 'SUBMITTING') {
-         // Retrieve the magnets we stored for this player
-         const savedWordPool = game.players[existingPlayerIndex].currentWordPool || [];
-         socket.emit('newRound', {
-            prompt: game.currentPrompt,
-            wordPool: savedWordPool, 
-            randomJoke: game.currentJoke
-         });
+         responseData.wordPool = game.players[existingPlayerIndex].currentWordPool || [];
+         responseData.prompt = game.currentPrompt; // Normalize name for Client
+         responseData.randomJoke = game.currentJoke; // Normalize name for Client
       } 
-      // If we are judging, show them the table
       else if (game.gameState === 'JUDGING') {
-         socket.emit('showSubmissions', {
-            prompt: game.currentPrompt,
-            submissions: game.submissions,
-            players: game.players,
-            currentJudgeId: game.currentJudgeId
-         });
+         responseData.prompt = game.currentPrompt;
+         // wordPool not needed for judging
       }
+
+      // 3. Emit Join Success with the BUNDLED data
+      socket.emit('joinSuccess', responseData);
 
       io.to(pin).emit('playerListUpdate', game.players);
       io.to(pin).emit('judgeUpdate', game.currentJudgeId);
@@ -224,11 +220,11 @@ io.on('connection', (socket) => {
     const jokeList = jokePacks[game.packName] || jokePacks.family;
     const safeJokeList = Array.isArray(jokeList) ? jokeList : ["Why did the chicken cross the road? To get to the other side."];
     const randomJoke = safeJokeList[Math.floor(Math.random() * safeJokeList.length)];
-    game.currentJoke = randomJoke; // <-- NEW: Store joke for reconnection
+    game.currentJoke = randomJoke;
 
     game.players.forEach(player => {
       const wordPool = getRandomWords(game.words, 75);
-      player.currentWordPool = wordPool; // <-- NEW: Store magnets for reconnection
+      player.currentWordPool = wordPool; // Store magnets for reconnection
       io.to(player.id).emit('newRound', { prompt, wordPool, randomJoke });
     });
 

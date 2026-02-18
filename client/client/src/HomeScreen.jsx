@@ -1,96 +1,56 @@
 // --- client/src/HomeScreen.jsx ---
-
 import { useState } from 'react';
-//import SuggestionBox from './SuggestionBox';
 
 function HomeScreen({ socket, onGoToCreate }) {
-  const [pinInput, setPinInput] = useState('');
-  const [nicknameInput, setNicknameInput] = useState('');
+  const [pin, setPin] = useState('');
+  const [nickname, setNickname] = useState('');
 
-  const handleJoinGame = () => {
-    if (pinInput && nicknameInput) {
-      socket.emit('joinGame', { pin: pinInput, nickname: nicknameInput });
-    } else {
-      alert('Please enter a nickname and PIN');
-    }
+  const handleJoin = () => {
+    if (!pin || !nickname) return alert("Enter a PIN and Nickname!");
+    socket.emit('joinGame', { pin, nickname });
   };
 
   return (
-    <div>
-      {/* CHRISTMAS UPDATE: Added Santa Emoji */}
-      <h1> Ransom Notes Online </h1>
+    <div className="home-screen">
+      <h1>Ransom Notes ✂️</h1>
       
-      {/* --- Section for Host --- */}
-      <div>
-        <h2>Host a Game</h2>
-        <button onClick={onGoToCreate}>Create New Game</button>
-      </div>
-
-      <hr />
-
-      {/* --- Section for Player --- */}
-      <div>
-        <h2>Join a Game</h2>
+      <div className="card">
+        <h3>Join a Game</h3>
         <input 
-          type="text" 
-          placeholder="Nickname"
-          value={nicknameInput}
-          onChange={(e) => setNicknameInput(e.target.value)}
+          placeholder="Game PIN" 
+          value={pin} 
+          onChange={e => setPin(e.target.value)} 
+          type="number"
         />
         <input 
-          type="text" 
-          placeholder="Game PIN"
-          value={pinInput}
-          onChange={(e) => setPinInput(e.target.value)}
+          placeholder="Nickname" 
+          value={nickname} 
+          onChange={e => setNickname(e.target.value)} 
+          maxLength={12}
         />
-        <button onClick={handleJoinGame}>Join</button>
+        <br />
+        <button className="primary" onClick={handleJoin}>Join Game</button>
       </div>
 
-      <hr /> 
-
-      {/* --- INSTRUCTIONS SECTION --- */}
-      <div className="instructions-box">
-        <h2>How to Play</h2>
-        <p><strong>1. Host a Game:</strong> One person (the Host) clicks "Create New Game," enters their nickname, and chooses a game pack (or creates their own!).</p>
-        <p><strong>2. Get a PIN:</strong> The Host will get a 4-digit Game PIN.</p>
-        <p><strong>3. Join the Game:</strong> Everyone else enters their nickname and the 4-digit PIN to join the lobby.</p>
-        <p><strong>4. Answer the Prompt:</strong> When the Host starts the round, everyone will get a random prompt. Use the "word pool" at the bottom to build your funniest answer!</p>
-        <p><strong>5. Judge the Answers:</strong> All answers are shown anonymously. The Host picks their favorite, and that player gets a point!</p>
-        <p><strong>6. Repeat:</strong> The first player to 5 points (or however many you decide) wins!</p>
+      <div className="card">
+        <h3>Or Start One</h3>
+        <button className="secondary" onClick={onGoToCreate}>Host New Game</button>
       </div>
 
-      {/* --- NEW SEO KEYWORD SECTION --- */}
-      <div className="about-box" style={{marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #eee'}}>
-        <h3 style={{textAlign: 'center'}}>About Ransom Notes Online</h3>
-        <p style={{fontSize: '0.9rem', color: '#555', lineHeight: '1.5'}}>
-          Welcome to Ransom Notes Online, a free party game for you and your friends! This game is inspired by the hilarious board game and games like Cards Against Humanity or Jackbox. 
-          The goal is simple: you get a silly prompt, and you have to answer it using a random bank of word magnets. 
-          Create the funniest, most ridiculous sentence to win the judge's favor. Our game is 100% free to play, works on your phone or computer, and is the perfect online word game for your next game night.
-        </p>
+      <div className="card" style={{ textAlign: 'left', fontSize: '0.9rem' }}>
+        <h4>How to Play:</h4>
+        <ol>
+          <li><strong>Join:</strong> One person hosts, everyone else joins with the PIN.</li>
+          <li><strong>The Goal:</strong> Use your magnetic words to answer weird prompts.</li>
+          <li><strong>Roles:</strong> One player is the <strong>Judge</strong>. Everyone else submits answers.</li>
+          <li><strong>Answer:</strong> When the <strong>Judge</strong> starts the round, drag words to build your answer.</li>
+          <li><strong>Win:</strong> The <strong>Judge</strong> picks their favorite. First to 5 points wins! (Judge role rotates).</li>
+        </ol>
       </div>
-
-      {/* --- DONATION SECTION --- */}
-      <div className="donation-box" style={{textAlign: 'center', marginTop: '2rem', padding: '1.5rem', background: '#f9f9f9', border: '2px dashed #ccc'}}>
-        <h4>Enjoying the game?</h4>
-        <p style={{fontSize: '0.95rem', lineHeight: '1.6'}}>This project is free to play and ad-free. If you'd like to support the server costs, you can buy me a (virtual) coffee!</p>
-        <a 
-          href="https://buymeacoffee.com/gklier" 
-          target="_blank" 
-          rel="noopener noreferrer"
-        >
-          <button style={{backgroundColor: '#FFDD00', color: '#000', border: 'none', fontSize: '1rem'}}>
-            ☕ Buy Me a Coffee
-          </button>
-        </a>
-      </div>
-
-      {/* --- REPORT BUG SECTION --- */}
-      <div style={{textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem'}}>
-        <a href="mailto:bugs@ransomnotes.online?subject=Ransom Notes Bug Report" style={{color: '#999'}}>
-          Found a bug? Report it here.
-        </a>
-      </div>
-
+      
+      <p style={{fontSize: '0.8rem', opacity: 0.6, marginTop: '2rem'}}>
+        Made with ❤️ (and frantic typing)
+      </p>
     </div>
   );
 }

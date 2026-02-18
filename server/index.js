@@ -74,10 +74,17 @@ const io = new Server(server, {
 
 const games = {};
 
+// --- CONNECTOR WORDS INJECTOR ---
+const CONNECTOR_WORDS = ["the", "and", "is", "a", "to", "in", "of", "it", "that", "for", "on", "with", "at", "by", "my", "your"];
+
 function getRandomWords(wordList, count) {
   if (!Array.isArray(wordList)) return [];
+  // Shuffle the main list
   const shuffled = [...wordList].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
+  // Take the requested amount
+  const selected = shuffled.slice(0, count);
+  // Add connector words to ensure sentences are possible
+  return [...selected, ...CONNECTOR_WORDS].sort(() => 0.5 - Math.random());
 }
 
 // --- HELPER: CHECK IF ROUND IS COMPLETE ---
@@ -166,6 +173,7 @@ io.on('connection', (socket) => {
 
     const existingPlayerIndex = game.players.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
     
+    // --- RECONNECTION ---
     if (existingPlayerIndex !== -1) {
       const oldSocketId = game.players[existingPlayerIndex].id;
       game.players[existingPlayerIndex].id = socket.id;
@@ -193,22 +201,40 @@ io.on('connection', (socket) => {
       }
 
       socket.emit('joinSuccess', responseData);
-
       io.to(pin).emit('playerListUpdate', game.players);
       io.to(pin).emit('judgeUpdate', game.currentJudgeId);
-      
       checkRoundComplete(game, io);
       return; 
     }
 
+    // --- NEW PLAYER JOIN ---
     const newPlayer = { id: socket.id, nickname, score: 0, connected: true };
-    game.players.push(newPlayer);
-    socket.join(pin);
+    
+    // BUG FIX: If joining mid-round, give them words immediately!
+    if (game.gameState === 'SUBMITTING') {
+        const wordPool = getRandomWords(game.words, 75);
+        newPlayer.currentWordPool = wordPool;
+        
+        game.players.push(newPlayer);
+        socket.join(pin);
+        
+        // Send join success with the round data
+        socket.emit('joinSuccess', { 
+            ...game, 
+            wordPool, 
+            prompt: game.currentPrompt, 
+            randomJoke: game.currentJoke 
+        });
+    } else {
+        // Normal join (Lobby or Judging)
+        game.players.push(newPlayer);
+        socket.join(pin);
+        socket.emit('joinSuccess', game);
+    }
 
     const joinMsg = { nickname: 'System', message: `${nickname} joined the game.`, timestamp: Date.now() };
     game.chatMessages.push(joinMsg);
 
-    socket.emit('joinSuccess', game);
     io.to(pin).emit('playerListUpdate', game.players);
     io.to(pin).emit('newMessage', joinMsg);
   });

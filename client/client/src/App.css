@@ -1,17 +1,17 @@
 /* client/src/App.css */
 
 :root {
-  --bg-color: #f4f1ea; /* "Manila Folder" Beige */
-  --text-color: #1a1a1a; /* Ink Black */
-  --primary-color: #d42426; /* Ransom Red */
-  --secondary-color: #2c3e50; /* Dark Blue/Grey */
-  --accent-color: #e67e22; /* Warning Orange */
+  --bg-color: #f4f1ea;
+  --text-color: #1a1a1a;
+  --primary-color: #d42426;
+  --secondary-color: #2c3e50;
+  --accent-color: #e67e22;
   --paper-shadow: 2px 2px 5px rgba(0,0,0,0.2);
 }
 
 body {
   margin: 0;
-  font-family: 'Courier New', Courier, monospace; /* Classic Typewriter */
+  font-family: 'Courier New', Courier, monospace;
   background-color: var(--bg-color);
   color: var(--text-color);
   display: flex;
@@ -56,7 +56,7 @@ button {
 button:hover {
   transform: translate(-2px, -2px);
   box-shadow: 5px 5px 0px #111;
-  background: #ffffcc; /* Light yellow note color */
+  background: #ffffcc;
 }
 
 button:active {
@@ -86,7 +86,11 @@ input {
   box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
 }
 
-/* --- GAME SCREENS --- */
+/* --- GAME SCREENS: MARGIN FIX --- */
+.lobby-container, .prompt-page, .judging-page {
+  margin-top: 2rem; /* Fixes overlap with Main Menu button */
+}
+
 .card {
   background: white;
   border: 1px solid #ccc;
@@ -137,7 +141,6 @@ input {
   transform: none;
 }
 
-/* --- UTILITIES --- */
 .error-msg {
   color: var(--primary-color);
   font-weight: bold;

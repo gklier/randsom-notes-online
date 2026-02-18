@@ -1,151 +1,136 @@
 /* client/src/App.css */
 
 :root {
-  --bg-color: #f4f1ea;
+  --bg-color: #e6e2d3; /* Aged Paper / Manila Folder */
   --text-color: #1a1a1a;
-  --primary-color: #d42426;
-  --secondary-color: #2c3e50;
-  --accent-color: #e67e22;
-  --paper-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+  --primary-color: #d42426; /* Ransom Red */
+  --paper-white: #fafafa;
+  --ink-black: #111111;
+  --paper-shadow: 4px 4px 15px rgba(0,0,0,0.15);
 }
 
 body {
   margin: 0;
-  font-family: 'Courier New', Courier, monospace;
+  /* Restore the Typewriter Font */
+  font-family: 'Courier New', Courier, monospace; 
   background-color: var(--bg-color);
+  background-image: radial-gradient(#d1cdbc 1px, transparent 1px); /* Subtle paper texture */
+  background-size: 20px 20px;
   color: var(--text-color);
   display: flex;
   justify-content: center;
   min-height: 100vh;
-  overflow-x: hidden;
 }
 
 #root {
   width: 100%;
-  max-width: 600px;
+  /* Increase max-width for Laptop/Desktop */
+  max-width: 900px; 
   text-align: center;
-  padding: 1rem;
+  padding: 2rem 1rem;
 }
 
+/* --- THE "CUT OUT" HEADERS --- */
 h1, h2, h3 {
+  font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  background: #111;
+  letter-spacing: -1px;
+  background: var(--ink-black);
   color: #fff;
   display: inline-block;
-  padding: 0.5rem 1rem;
-  transform: rotate(-2deg);
-  margin-bottom: 1.5rem;
-  box-shadow: var(--paper-shadow);
+  padding: 0.7rem 1.5rem;
+  transform: rotate(-1.5deg);
+  margin-bottom: 2rem;
+  box-shadow: 5px 5px 0px rgba(0,0,0,0.2);
 }
 
-button {
+/* --- CARDS & BOXES --- */
+.card {
+  background: var(--paper-white);
+  border: 1px solid #ddd;
+  padding: 2rem;
+  margin: 2rem 0;
+  box-shadow: var(--paper-shadow);
+  position: relative;
+  /* Slight random rotation for that "thrown on the table" look */
+  transform: rotate(0.5deg);
+}
+
+.card:nth-child(even) {
+  transform: rotate(-0.5deg);
+}
+
+/* --- WORD MAGNETS --- */
+.word-magnet {
+  display: inline-block;
   background: #fff;
-  border: 2px solid #111;
-  padding: 0.8rem 1.5rem;
+  color: #000;
+  border: 2px solid #000;
+  padding: 0.4rem 0.8rem;
+  margin: 0.3rem;
+  font-family: 'Arial Black', sans-serif; /* Bold contrast to typewriter */
   font-size: 1rem;
+  text-transform: uppercase;
+  box-shadow: 2px 2px 0px #000;
+  cursor: grab;
+  user-select: none;
+  background-image: linear-gradient(180deg, #fff 0%, #f0f0f0 100%);
+}
+
+.word-magnet:hover {
+  background: #ffffcc;
+  transform: scale(1.05) rotate(1deg);
+}
+
+/* --- BUTTONS --- */
+button {
+  background: var(--ink-black);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
   font-family: inherit;
   font-weight: bold;
   cursor: pointer;
   margin: 0.5rem;
-  box-shadow: 3px 3px 0px #111;
-  transition: all 0.1s;
   text-transform: uppercase;
+  transition: transform 0.1s;
 }
 
 button:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0px #111;
-  background: #ffffcc;
-}
-
-button:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0px #111;
-}
-
-button.primary {
   background: var(--primary-color);
-  color: white;
-  border-color: #111;
+  transform: scale(1.02);
 }
 
 button.secondary {
-  background: var(--secondary-color);
-  color: white;
-}
-
-input {
-  padding: 0.8rem;
-  font-size: 1rem;
-  border: 2px solid #111;
   background: #fff;
-  margin-bottom: 1rem;
-  width: 80%;
-  font-family: inherit;
-  box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+  color: var(--ink-black);
+  border: 2px solid var(--ink-black);
 }
 
-/* --- GAME SCREENS: MARGIN FIX --- */
-.lobby-container, .prompt-page, .judging-page {
-  margin-top: 2rem; /* Fixes overlap with Main Menu button */
+/* --- LAYOUT FIXES FOR LAPTOP --- */
+@media (min-width: 768px) {
+  #root {
+    padding-top: 4rem;
+  }
+  
+  .submissions-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two columns on big screens */
+    gap: 20px;
+  }
+
+  .answer-box {
+    min-height: 150px;
+    padding: 20px;
+  }
 }
 
-.card {
-  background: white;
-  border: 1px solid #ccc;
-  padding: 1rem;
-  margin: 1rem 0;
-  box-shadow: var(--paper-shadow);
-  transform: rotate(1deg);
-}
-
-.word-magnet {
-  display: inline-block;
-  background: #fff;
-  border: 1px solid #ddd;
-  padding: 0.2rem 0.5rem;
-  margin: 0.2rem;
-  font-family: Arial, sans-serif;
-  font-size: 0.9rem;
-  box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-  cursor: grab;
-  user-select: none;
-}
-
-.word-magnet.dragging {
-  opacity: 0.5;
-  transform: scale(1.1);
-}
-
-/* --- MUSIC PLAYER & HOME BUTTON --- */
-.music-player-button, .home-button {
-  position: absolute;
-  top: 10px;
-  font-size: 0.8rem;
-  padding: 0.25rem 0.5rem;
-  z-index: 100;
-  background: #fff;
-  border: 1px solid #ccc;
-  color: #333;
-  box-shadow: none;
-}
-
-.music-player-button { right: 10px; }
-.home-button { left: 10px; }
-
-.music-player-button:hover, .home-button:hover {
-  background: #eee;
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-  transform: none;
-}
-
-.error-msg {
-  color: var(--primary-color);
-  font-weight: bold;
-  background: #ffe6e6;
-  padding: 0.5rem;
-  border: 1px dashed var(--primary-color);
-  margin: 1rem 0;
+/* Emergency Exit Button Styling */
+.home-button {
+  background: #fff !important;
+  color: #333 !important;
+  border: 1px solid #ccc !important;
+  box-shadow: none !important;
+  transform: none !important;
 }

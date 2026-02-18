@@ -7,7 +7,6 @@ const cors = require('cors');
 const { Pool } = require('pg');
 
 // --- LOAD PACK FILES ---
-// Ensure these files exist in your server directory
 const promptsNSFW = require('./prompts-nsfw.json');
 const wordsNSFW = require('./words-nsfw.json');
 const promptsFamily = require('./prompts-family.json');
@@ -17,9 +16,6 @@ const jokesNSFW = require('./jokes-nsfw.json');
 const promptsResearch = require('./prompts-research.json');
 const wordsResearch = require('./words-research.json');
 const jokesResearch = require('./jokes-research.json');
-const promptsChristmas = require('./prompts-christmas.json');
-const wordsChristmas = require('./words-christmas.json');
-const jokesChristmas = require('./jokes-christmas.json');
 
 // --- DATABASE SETUP ---
 const pool = new Pool({
@@ -56,10 +52,6 @@ const defaultPacks = {
   research: {
     prompts: Array.isArray(promptsResearch) ? promptsResearch : (promptsResearch.all || []),
     words: Array.isArray(wordsResearch) ? wordsResearch : (wordsResearch.all || wordsResearch || [])
-  },
-  christmas: {
-    prompts: Array.isArray(promptsChristmas) ? promptsChristmas : (promptsChristmas.all || []),
-    words: Array.isArray(wordsChristmas) ? wordsChristmas : (wordsChristmas.all || wordsChristmas || [])
   }
 };
 
@@ -67,7 +59,6 @@ const jokePacks = {
   family: jokesFamily,
   nsfw: jokesNSFW,
   research: jokesResearch,
-  christmas: jokesChristmas,
   custom: jokesFamily
 };
 
@@ -93,7 +84,6 @@ function getRandomWords(wordList, count) {
 function checkRoundComplete(game, io) {
     if (game.gameState !== 'SUBMITTING') return;
 
-    // Only wait for players who are currently CONNECTED
     const playersSubmitting = game.players.filter(p => 
         p.id !== game.currentJudgeId && p.connected !== false
     );
@@ -174,20 +164,16 @@ io.on('connection', (socket) => {
     const game = games[pin];
     if (!game) return socket.emit('joinError', 'Game not found');
 
-    // --- RECONNECTION LOGIC ---
     const existingPlayerIndex = game.players.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
     
     if (existingPlayerIndex !== -1) {
-      // 1. Revive the Player
       const oldSocketId = game.players[existingPlayerIndex].id;
       game.players[existingPlayerIndex].id = socket.id;
       game.players[existingPlayerIndex].connected = true;
 
-      // Transfer Roles
       if (game.hostId === oldSocketId) game.hostId = socket.id;
       if (game.currentJudgeId === oldSocketId) game.currentJudgeId = socket.id;
       
-      // Transfer Submission
       if (game.submissions[oldSocketId]) {
         game.submissions[socket.id] = game.submissions[oldSocketId];
         delete game.submissions[oldSocketId];
@@ -195,8 +181,6 @@ io.on('connection', (socket) => {
 
       socket.join(pin);
 
-      // 2. DATA BUNDLING (The Fix)
-      // Send EVERYTHING the client needs in one packet.
       const responseData = { ...game };
       
       if (game.gameState === 'SUBMITTING') {
@@ -213,11 +197,9 @@ io.on('connection', (socket) => {
       io.to(pin).emit('playerListUpdate', game.players);
       io.to(pin).emit('judgeUpdate', game.currentJudgeId);
       
-      // If the game was stuck waiting for this person, check if we can move on
       checkRoundComplete(game, io);
       return; 
     }
-    // -------------------------
 
     const newPlayer = { id: socket.id, nickname, score: 0, connected: true };
     game.players.push(newPlayer);
@@ -236,7 +218,7 @@ io.on('connection', (socket) => {
     if (!game || game.currentJudgeId !== socket.id) return;
 
     if (!game.prompts || game.prompts.length === 0) {
-      io.to(socket.id).emit('errorMessage', 'No prompts available.');
+      io.to(socket.id).emit('errorMessage', 'No prompts available for this pack.');
       return;
     }
 
@@ -251,7 +233,7 @@ io.on('connection', (socket) => {
 
     game.players.forEach(player => {
       const wordPool = getRandomWords(game.words, 75);
-      player.currentWordPool = wordPool; // Store for reconnection
+      player.currentWordPool = wordPool;
       io.to(player.id).emit('newRound', { prompt, wordPool, randomJoke });
     });
 
@@ -302,15 +284,11 @@ io.on('connection', (socket) => {
       if (playerIndex === -1) return;
 
       const player = game.players[playerIndex];
-      
-      // --- CHANGE: Mark Offline, Do Not Delete ---
       player.connected = false; 
-      // ------------------------------------------
 
       const leaveMsg = { nickname: 'System', message: `${player.nickname} disconnected (waiting for reconnect).`, timestamp: Date.now() };
       game.chatMessages.push(leaveMsg);
 
-      // If Judge disconnects, rotate immediately
       if (player.id === game.currentJudgeId) {
         game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
         game.currentJudgeId = game.players[game.judgeIndex].id;

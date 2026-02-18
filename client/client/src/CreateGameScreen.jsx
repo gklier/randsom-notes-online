@@ -82,9 +82,6 @@ function CreateGameScreen({ socket, onBack }) {
       
       <div className="default-game-box">
         <h3>...Or Use a Default Pack</h3>
-        <button onClick={() => handleCreateDefault('christmas')} style={{backgroundColor: '#d42426', color: 'white', borderColor: '#2f5b28'}}>
-          🎄 Start Christmas Game 🎄
-        </button>
         <button onClick={() => handleCreateDefault('family')}>
           Start Family-Friendly Game
         </button>

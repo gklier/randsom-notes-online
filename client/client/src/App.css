@@ -1,295 +1,148 @@
 /* client/src/App.css */
 
-/* --- Main App Layout --- */
-.app-container {
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: #fff; /* Keep the inside white like a letter */
-  /* CHRISTMAS THEME: Thick Green Border */
-  border: 8px solid #2f5b28;
-  border-radius: 10px;
-  box-shadow: 10px 10px 0px rgba(0,0,0,0.2); /* Hard shadow for a "sticker" look */
-  position: relative;
+:root {
+  --bg-color: #f4f1ea; /* "Manila Folder" Beige */
+  --text-color: #1a1a1a; /* Ink Black */
+  --primary-color: #d42426; /* Ransom Red */
+  --secondary-color: #2c3e50; /* Dark Blue/Grey */
+  --accent-color: #e67e22; /* Warning Orange */
+  --paper-shadow: 2px 2px 5px rgba(0,0,0,0.2);
 }
 
-/* --- Buttons & Inputs --- */
-button {
-  font-family: 'Special Elite', monospace;
-  font-size: 1rem;
-  padding: 0.5rem 1rem;
-  /* CHRISTMAS THEME: Green Buttons */
-  border: 2px solid #1a3a16;
-  background: #2f5b28;
+body {
+  margin: 0;
+  font-family: 'Courier New', Courier, monospace; /* Classic Typewriter */
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+  padding: 1rem;
+}
+
+h1, h2, h3 {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  background: #111;
   color: #fff;
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  transform: rotate(-2deg);
+  margin-bottom: 1.5rem;
+  box-shadow: var(--paper-shadow);
+}
+
+button {
+  background: #fff;
+  border: 2px solid #111;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
-  margin: 0.25rem;
-  border-radius: 5px;
+  margin: 0.5rem;
+  box-shadow: 3px 3px 0px #111;
+  transition: all 0.1s;
+  text-transform: uppercase;
 }
 
 button:hover {
-  /* CHRISTMAS THEME: Red Hover */
-  background: #d42426;
-  border-color: #8b1012;
-  transform: translateY(-2px);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px #111;
+  background: #ffffcc; /* Light yellow note color */
 }
 
-button:disabled {
-  background: #ccc;
-  border-color: #999;
-  color: #666;
+button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #111;
+}
+
+button.primary {
+  background: var(--primary-color);
+  color: white;
+  border-color: #111;
+}
+
+button.secondary {
+  background: var(--secondary-color);
+  color: white;
+}
+
+input {
+  padding: 0.8rem;
+  font-size: 1rem;
+  border: 2px solid #111;
+  background: #fff;
+  margin-bottom: 1rem;
+  width: 80%;
+  font-family: inherit;
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+}
+
+/* --- GAME SCREENS --- */
+.card {
+  background: white;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  margin: 1rem 0;
+  box-shadow: var(--paper-shadow);
+  transform: rotate(1deg);
+}
+
+.word-magnet {
+  display: inline-block;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 0.2rem 0.5rem;
+  margin: 0.2rem;
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  cursor: grab;
+  user-select: none;
+}
+
+.word-magnet.dragging {
+  opacity: 0.5;
+  transform: scale(1.1);
+}
+
+/* --- MUSIC PLAYER & HOME BUTTON --- */
+.music-player-button, .home-button {
+  position: absolute;
+  top: 10px;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  z-index: 100;
+  background: #fff;
+  border: 1px solid #ccc;
+  color: #333;
+  box-shadow: none;
+}
+
+.music-player-button { right: 10px; }
+.home-button { left: 10px; }
+
+.music-player-button:hover, .home-button:hover {
+  background: #eee;
+  color: var(--primary-color);
+  border-color: var(--primary-color);
   transform: none;
 }
 
-input, textarea {
-  font-family: 'Special Elite', monospace;
-  font-size: 1.1rem;
+/* --- UTILITIES --- */
+.error-msg {
+  color: var(--primary-color);
+  font-weight: bold;
+  background: #ffe6e6;
   padding: 0.5rem;
-  width: 100%;
-  max-width: 400px;
-  border: 2px solid #ccc;
-  margin-bottom: 1rem;
-  border-radius: 5px;
-}
-
-textarea {
-  width: 100%;
-  max-width: 100%;
-}
-
-/* --- Create Game Screen --- */
-.custom-game-box, .default-game-box {
-  border: 2px dashed #ccc;
-  padding: 1.5rem;
-  margin-top: 1.5rem;
-  background: #fdfdfd;
-  border-radius: 8px;
-}
-
-.default-game-box button {
-  width: 80%;
-  max-width: 400px;
-  padding: 1rem;
-  font-size: 1.2rem;
-  display: block;
-  margin: 10px auto;
-}
-
-/* --- Lobby Screen --- */
-.winner-box {
-  background: #e8f5e9; /* Light green tint */
-  border: 2px dashed #2f5b28;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
-  border-radius: 8px;
-}
-.winner-box h4 {
-  font-size: 1.1rem;
-  color: #2f5b28;
-  margin-bottom: 0.5rem;
-}
-
-/* --- THE RANSOM NOTE EFFECT (SubmissionScreen) --- */
-.submission-area {
-  border: 2px dashed #aaa;
-  min-height: 100px;
-  padding: 10px;
-  background: #fdfdfd;
-  margin-bottom: 1rem;
-  border-radius: 8px;
-}
-
-.word-pool {
-  background: #f4f4f4;
-  padding: 10px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-}
-
-.word-pool button,
-.submission-area button {
-  font-family: 'Arial', 'Helvetica', sans-serif;
-  border: none;
-  padding: 4px 6px;
-  margin: 3px;
-  box-shadow: 2px 2px 3px rgba(0,0,0,0.2);
-  text-transform: uppercase;
-  font-weight: bold;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: all 0.1s;
-  border-radius: 0; /* Keep square for ransom look */
-}
-
-/* --- CHRISTMAS RANSOM STYLES --- */
-/* We override the colors to be festive: Red, Green, White, Gold */
-
-/* 1. Red Card */
-.word-pool button:nth-child(4n+1),
-.submission-area button:nth-child(4n+1) {
-  background: #d42426;
-  color: white;
-  font-family: 'Times New Roman', serif;
-}
-
-/* 2. Green Card */
-.word-pool button:nth-child(4n+2),
-.submission-area button:nth-child(4n+2) {
-  background: #2f5b28;
-  color: white;
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-}
-
-/* 3. White/Paper Card */
-.word-pool button:nth-child(4n+3),
-.submission-area button:nth-child(4n+3) {
-  background: #fdfdfd;
-  color: #d42426; /* Red Text */
-  font-family: 'Arial Black', sans-serif;
-}
-
-/* 4. Gold Card */
-.word-pool button:nth-child(4n+4),
-.submission-area button:nth-child(4n+4) {
-  background: #ffcc00;
-  color: #2f5b28; /* Green Text */
-  font-family: 'Special Elite', monospace;
-  font-weight: bold;
-}
-
-.word-pool button:hover,
-.submission-area button:hover {
-  transform: scale(1.1) rotate(2deg);
-  box-shadow: 3px 3px 5px rgba(0,0,0,0.3);
-  z-index: 10;
-}
-
-/* --- Waiting Screen --- */
-.waiting-box {
-  text-align: center;
-}
-.waiting-box h4 {
-  margin-top: 2rem;
-}
-.waiting-box p {
-  font-style: italic;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-/* --- MUSIC PLAYER --- */
-.music-player-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 0.8rem;
-  padding: 0.25rem 0.5rem;
-  z-index: 10;
-  background: #fff;
-  color: #333;
-  border: 1px solid #ccc;
-}
-.music-player-button:hover {
-  background: #eee;
-  color: #000;
-}
-
-/* --- NEW: MAIN MENU BUTTON --- */
-.home-button {
-  position: absolute; /* Sticks to the corner */
-  top: 10px;
-  left: 10px;
-  font-size: 0.8rem;
-  padding: 0.25rem 0.5rem;
-  z-index: 10; /* On top of everything */
-  background: #fff;
-  border: 1px solid #ccc;
-  color: #333;
-}
-
-.home-button:hover {
-  background: #eee;
-  color: #d42426; /* Red text on hover to indicate "Leaving" */
-  border-color: #d42426;
-}
-
-/* --- INSTRUCTIONS BOX --- */
-.instructions-box {
-  border: 2px dashed #aaa;
-  padding: 1.5rem;
-  margin-top: 2rem;
-  background: #fff;
-  border-radius: 8px;
-}
-.instructions-box h2 {
-  text-align: center;
-}
-.instructions-box p {
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-/* --- RANSOM NOTE TEXT DISPLAY (Lobby/Judging) --- */
-.ransom-note-text {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 1rem;
-  min-height: 50px;
-}
-
-.ransom-note-text span {
-  display: inline-block;
-  font-weight: bold;
-  text-transform: uppercase;
-  padding: 4px 6px;
-  margin: 4px;
-  box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-  line-height: 1;
-}
-
-/* CHRISTMAS STYLES FOR DISPLAY TEXT TOO */
-.ransom-note-text span:nth-child(4n+1) {
-  font-family: 'Oswald', sans-serif;
-  background: #d42426; /* Red */
-  color: #fff;
-  font-size: 1.6rem;
-  transform: rotate(-2deg);
-}
-.ransom-note-text span:nth-child(4n+2) {
-  font-family: 'Anton', sans-serif;
-  background: #2f5b28; /* Green */
-  color: #fff;
-  font-size: 1.5rem;
-  padding-top: 6px;
-  transform: rotate(1deg);
-}
-.ransom-note-text span:nth-child(4n+3) {
-  font-family: 'Special Elite', monospace;
-  background: #fff; /* White */
-  color: #d42426;
-  font-size: 1.4rem;
-  transform: rotate(3deg);
-  border: 1px solid #ccc;
-}
-.ransom-note-text span:nth-child(4n+4) {
-  font-family: 'Courier New', monospace;
-  background: #ffcc00; /* Gold */
-  color: #2f5b28;
-  font-size: 1.6rem;
-  transform: rotate(-1deg);
-}
-
-/* Chat Styling */
-@media (max-width: 768px) {
-  .lobby-container {
-    flex-direction: column;
-  }
-  .lobby-container > div {
-    border-left: none !important;
-    padding-left: 0 !important;
-  }
+  border: 1px dashed var(--primary-color);
+  margin: 1rem 0;
 }

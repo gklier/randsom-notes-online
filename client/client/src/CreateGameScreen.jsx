@@ -1,96 +1,127 @@
 // --- client/src/CreateGameScreen.jsx ---
-
 import { useState } from 'react';
 
 function CreateGameScreen({ socket, onBack }) {
-  const [promptsText, setPromptsText] = useState('');
-  const [wordsText, setWordsText] = useState('');
   const [hostNickname, setHostNickname] = useState('');
+  const [selectedPack, setSelectedPack] = useState('family'); // Default to Family
+  const [isCustom, setIsCustom] = useState(false);
+  const [customPrompts, setCustomPrompts] = useState('');
+  const [customWords, setCustomWords] = useState('');
 
   const handleCreate = () => {
-    if (!hostNickname) {
-      alert('Please enter your nickname');
-      return;
-    }
-    const customPrompts = promptsText.split('\n').filter(line => line.trim() !== '');
+    if (!hostNickname.trim()) return alert("Please enter a nickname!");
     
-    // UPDATED SPLIT LOGIC: Splits by spaces AND newlines (/\s+/)
-    const customWords = wordsText.split(/\s+/).filter(word => word.trim() !== '');
+    // If Custom is selected, parse the text inputs
+    if (isCustom) {
+      const pList = customPrompts.split('\n').filter(p => p.trim() !== '');
+      const wList = customWords.split(/[ ,]+/).filter(w => w.trim() !== '');
+      
+      if (pList.length === 0 || wList.length === 0) {
+        return alert("Please add at least one prompt and some words for a custom game.");
+      }
 
-    if (customPrompts.length < 5 || customWords.length < 100) {
-      alert('Please enter at least 5 prompts and 100 words.');
-      return;
+      socket.emit('createGame', {
+        hostNickname,
+        customPrompts: pList,
+        customWords: wList,
+        defaultPack: null
+      });
+    } else {
+      // Standard Pack
+      socket.emit('createGame', {
+        hostNickname,
+        defaultPack: selectedPack
+      });
     }
-    
-    socket.emit('createGame', { customPrompts, customWords, hostNickname });
-  };
-
-  const handleCreateDefault = (packName) => {
-    if (!hostNickname) {
-      alert('Please enter your nickname');
-      return;
-    }
-    socket.emit('createGame', { defaultPack: packName, hostNickname });
   };
 
   return (
-    <div>
-      <button onClick={onBack}>&larr; Back</button>
-      <h2>Create Your Game</h2>
+    <div className="card">
+      <h2>Host a Game</h2>
+      
+      <input 
+        type="text" 
+        placeholder="Your Nickname" 
+        value={hostNickname}
+        onChange={e => setHostNickname(e.target.value)}
+        maxLength={12}
+      />
 
-      <div>
-        <h4>Your Nickname</h4>
-        <input 
-          type="text" 
-          placeholder="Enter your nickname"
-          value={hostNickname}
-          onChange={(e) => setHostNickname(e.target.value)}
-        />
-      </div>
-      <hr />
-
-      <div className="custom-game-box">
-        <h3>Make Your Own Pack</h3>
-        <p style={{fontSize: '0.9rem', color: '#666'}}>
-          (Custom games now use Family-Friendly jokes by default!)
-        </p>
+      <div style={{ margin: '1rem 0', textAlign: 'left' }}>
+        <h3>Select Pack:</h3>
         
-        <p>Add your prompts (one per line):</p>
-        <span style={{fontSize: '0.8rem', color: '#666'}}>Recommended: Max 50 prompts</span>
-        <textarea
-          placeholder="e.g.&#10;Tell your boss you're quitting&#10;A horrible pickup line"
-          rows="8"
-          value={promptsText}
-          onChange={(e) => setPromptsText(e.target.value)}
-        ></textarea>
+        {/* --- STANDARD PACKS --- */}
+        <label style={{ display: 'block', margin: '0.5rem 0' }}>
+          <input 
+            type="radio" 
+            name="pack" 
+            value="family" 
+            checked={!isCustom && selectedPack === 'family'} 
+            onChange={() => { setIsCustom(false); setSelectedPack('family'); }}
+          />
+          👨‍👩‍👧‍👦 Family Friendly (Standard)
+        </label>
 
-        <p>Add your words (separated by spaces or new lines):</p>
-        <span style={{fontSize: '0.8rem', color: '#666'}}>Recommended: Max 500 words</span>
-        <textarea
-          placeholder="e.g. THE A CAT DOG JUMPED..."
-          rows="8"
-          value={wordsText}
-          onChange={(e) => setWordsText(e.target.value)}
-        ></textarea>
+        <label style={{ display: 'block', margin: '0.5rem 0' }}>
+          <input 
+            type="radio" 
+            name="pack" 
+            value="nsfw" 
+            checked={!isCustom && selectedPack === 'nsfw'} 
+            onChange={() => { setIsCustom(false); setSelectedPack('nsfw'); }}
+          />
+          🌶️ NSFW (Adults Only)
+        </label>
+        
+        <label style={{ display: 'block', margin: '0.5rem 0' }}>
+            <input 
+            type="radio" 
+            name="pack" 
+            value="research" 
+            checked={!isCustom && selectedPack === 'research'} 
+            onChange={() => { setIsCustom(false); setSelectedPack('research'); }}
+            />
+            🔬 User Research (The Weird Stuff)
+        </label>
 
-        <div>
-          <button onClick={handleCreate}>Create Custom Game</button>
-        </div>
+        {/* --- CUSTOM PACK --- */}
+        <label style={{ display: 'block', margin: '0.5rem 0', borderTop: '1px solid #eee', paddingTop: '0.5rem' }}>
+          <input 
+            type="radio" 
+            name="pack" 
+            value="custom" 
+            checked={isCustom} 
+            onChange={() => setIsCustom(true)}
+          />
+          ✏️ Custom Game (Write your own!)
+        </label>
       </div>
-      
-      <hr />
-      
-      <div className="default-game-box">
-        <h3>...Or Use a Default Pack</h3>
-        <button onClick={() => handleCreateDefault('family')}>
-          Start Family-Friendly Game
-        </button>
-        <button onClick={() => handleCreateDefault('research')}>
-          Start Research Game
-        </button>
-        <button onClick={() => handleCreateDefault('nsfw')}>
-          Start NSFW (CAH-Style) Game
-        </button>
+
+      {isCustom && (
+        <div style={{ textAlign: 'left', fontSize: '0.9rem' }}>
+          <p><strong>Prompts (one per line):</strong></p>
+          <textarea 
+            rows={4} 
+            style={{ width: '100%' }} 
+            placeholder="e.g. Things you shouldn't say at a funeral..."
+            value={customPrompts}
+            onChange={e => setCustomPrompts(e.target.value)}
+          />
+          
+          <p><strong>Words (separate by space/comma):</strong></p>
+          <textarea 
+            rows={4} 
+            style={{ width: '100%' }} 
+            placeholder="e.g. moist, grandma, explosion, oops"
+            value={customWords}
+            onChange={e => setCustomWords(e.target.value)}
+          />
+        </div>
+      )}
+
+      <div style={{ marginTop: '2rem' }}>
+        <button className="secondary" onClick={onBack}>Back</button>
+        <button className="primary" onClick={handleCreate}>Create Room</button>
       </div>
     </div>
   );

@@ -23,10 +23,10 @@ function App() {
     if (savedSession) {
       try {
         const { pin, nickname } = JSON.parse(savedSession);
-        console.log("Attempting auto-rejoin:", pin, nickname);
+        console.log("Auto-rejoining:", pin, nickname);
         socket.emit('joinGame', { pin, nickname });
       } catch (e) {
-        console.error("Invalid session data", e);
+        console.error("Session Error", e);
         sessionStorage.removeItem('ransom_session');
       }
     }
@@ -38,9 +38,19 @@ function App() {
       if (myNick) sessionStorage.setItem('ransom_session', JSON.stringify({ pin: game.pin, nickname: myNick }));
     });
 
+    // === SMART JOIN (Fixes Blank Screen) ===
     socket.on('joinSuccess', (game) => {
       setGameData(game);
-      setGameState(game.gameState); 
+      
+      // If server sent us the "newRound" data inside the join message, use it now!
+      if (game.gameState === 'SUBMITTING' && game.wordPool) {
+        setGameState('SUBMITTING');
+      } else if (game.gameState === 'JUDGING') {
+        setGameState('JUDGING');
+      } else {
+        setGameState(game.gameState || 'LOBBY');
+      }
+
       const myNick = game.players.find(p => p.id === socket.id)?.nickname;
       if (myNick) sessionStorage.setItem('ransom_session', JSON.stringify({ pin: game.pin, nickname: myNick }));
     });
@@ -97,14 +107,10 @@ function App() {
     };
   }, []);
 
-  // --- NEW: Handle "Emergency Exit" ---
   const handleReturnHome = () => {
-    // We ask for confirmation so they don't misclick it
-    const confirmLeave = window.confirm("Are you sure you want to exit to the Main Menu? You will leave the current game.");
+    const confirmLeave = window.confirm("Exit to Main Menu? This will disconnect you.");
     if (confirmLeave) {
-      // 1. Clear the session so the app doesn't immediately try to auto-rejoin
       sessionStorage.removeItem('ransom_session');
-      // 2. Force a hard reload to clear memory and socket state
       window.location.reload();
     }
   };
@@ -112,15 +118,9 @@ function App() {
   const renderScene = () => {
     switch (gameState) {
       case 'HOME':
-        return <HomeScreen 
-                  socket={socket} 
-                  onGoToCreate={() => setGameState('CREATE_GAME')} 
-                />;
+        return <HomeScreen socket={socket} onGoToCreate={() => setGameState('CREATE_GAME')} />;
       case 'CREATE_GAME':
-        return <CreateGameScreen 
-                  socket={socket} 
-                  onBack={() => setGameState('HOME')} 
-                />;
+        return <CreateGameScreen socket={socket} onBack={() => setGameState('HOME')} />;
       case 'LOBBY':
         return <LobbyScreen socket={socket} gameData={gameData} />;
       case 'SUBMITTING':
@@ -134,16 +134,10 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Music Player is Top-Right */}
       <MusicPlayer />
-
-      {/* NEW: Home Button is Top-Left (Only show if NOT on home screen) */}
       {gameState !== 'HOME' && (
-        <button className="home-button" onClick={handleReturnHome}>
-          🏠 Main Menu
-        </button>
+        <button className="home-button" onClick={handleReturnHome}>🏠 Menu</button>
       )}
-
       {renderScene()}
     </div>
   );

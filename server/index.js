@@ -7,6 +7,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 
 // --- LOAD PACK FILES ---
+// Ensure these files exist in your server directory
 const promptsNSFW = require('./prompts-nsfw.json');
 const wordsNSFW = require('./words-nsfw.json');
 const promptsFamily = require('./prompts-family.json');
@@ -88,28 +89,15 @@ function getRandomWords(wordList, count) {
   return shuffled.slice(0, count);
 }
 
-app.post('/submit-suggestion', async (req, res) => {
-  const { suggestion } = req.body;
-  if (!suggestion) return res.status(400).send({ message: 'Suggestion text is required.' });
-  try {
-    await pool.query('INSERT INTO suggestions(suggestion_text) VALUES($1)', [suggestion]);
-    res.status(200).send({ message: 'Suggestion sent successfully!' });
-  } catch (error) {
-    console.error('Error saving suggestion:', error);
-    res.status(500).send({ message: 'Error sending suggestion.' });
-  }
-});
-
 // --- HELPER: CHECK IF ROUND IS COMPLETE ---
-// We check if all CONNECTED players (except judge) have submitted
 function checkRoundComplete(game, io) {
     if (game.gameState !== 'SUBMITTING') return;
 
+    // Only wait for players who are currently CONNECTED
     const playersSubmitting = game.players.filter(p => 
         p.id !== game.currentJudgeId && p.connected !== false
     );
     
-    // Check if we have enough submissions from ACTIVE players
     const activeSubmissions = playersSubmitting.filter(p => game.submissions[p.id]);
 
     if (activeSubmissions.length === playersSubmitting.length && playersSubmitting.length > 0) {
@@ -122,6 +110,18 @@ function checkRoundComplete(game, io) {
       });
     }
 }
+
+app.post('/submit-suggestion', async (req, res) => {
+  const { suggestion } = req.body;
+  if (!suggestion) return res.status(400).send({ message: 'Suggestion text is required.' });
+  try {
+    await pool.query('INSERT INTO suggestions(suggestion_text) VALUES($1)', [suggestion]);
+    res.status(200).send({ message: 'Suggestion sent successfully!' });
+  } catch (error) {
+    console.error('Error saving suggestion:', error);
+    res.status(500).send({ message: 'Error sending suggestion.' });
+  }
+});
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
@@ -178,15 +178,16 @@ io.on('connection', (socket) => {
     const existingPlayerIndex = game.players.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
     
     if (existingPlayerIndex !== -1) {
-      // 1. Update Identity
+      // 1. Revive the Player
       const oldSocketId = game.players[existingPlayerIndex].id;
       game.players[existingPlayerIndex].id = socket.id;
-      game.players[existingPlayerIndex].connected = true; // Mark as back online
+      game.players[existingPlayerIndex].connected = true;
 
+      // Transfer Roles
       if (game.hostId === oldSocketId) game.hostId = socket.id;
       if (game.currentJudgeId === oldSocketId) game.currentJudgeId = socket.id;
       
-      // Migrate submission if they had one
+      // Transfer Submission
       if (game.submissions[oldSocketId]) {
         game.submissions[socket.id] = game.submissions[oldSocketId];
         delete game.submissions[oldSocketId];
@@ -194,7 +195,8 @@ io.on('connection', (socket) => {
 
       socket.join(pin);
 
-      // 2. PREPARE THE DATA BUNDLE (Recover state)
+      // 2. DATA BUNDLING (The Fix)
+      // Send EVERYTHING the client needs in one packet.
       const responseData = { ...game };
       
       if (game.gameState === 'SUBMITTING') {
@@ -211,7 +213,7 @@ io.on('connection', (socket) => {
       io.to(pin).emit('playerListUpdate', game.players);
       io.to(pin).emit('judgeUpdate', game.currentJudgeId);
       
-      // Check if this reconnection unblocks the round (rare, but possible)
+      // If the game was stuck waiting for this person, check if we can move on
       checkRoundComplete(game, io);
       return; 
     }
@@ -234,7 +236,7 @@ io.on('connection', (socket) => {
     if (!game || game.currentJudgeId !== socket.id) return;
 
     if (!game.prompts || game.prompts.length === 0) {
-      io.to(socket.id).emit('errorMessage', 'No prompts available for this pack (or you ran out!).');
+      io.to(socket.id).emit('errorMessage', 'No prompts available.');
       return;
     }
 
@@ -243,13 +245,13 @@ io.on('connection', (socket) => {
     game.currentPrompt = prompt;
 
     const jokeList = jokePacks[game.packName] || jokePacks.family;
-    const safeJokeList = Array.isArray(jokeList) ? jokeList : ["Why did the chicken cross the road? To get to the other side."];
+    const safeJokeList = Array.isArray(jokeList) ? jokeList : ["Why did the chicken cross the road?"];
     const randomJoke = safeJokeList[Math.floor(Math.random() * safeJokeList.length)];
     game.currentJoke = randomJoke;
 
     game.players.forEach(player => {
       const wordPool = getRandomWords(game.words, 75);
-      player.currentWordPool = wordPool;
+      player.currentWordPool = wordPool; // Store for reconnection
       io.to(player.id).emit('newRound', { prompt, wordPool, randomJoke });
     });
 
@@ -263,8 +265,6 @@ io.on('connection', (socket) => {
 
     game.submissions[socket.id] = answer;
     io.to(game.currentJudgeId).emit('playerSubmitted', socket.id);
-    
-    // Use helper to check if everyone is done
     checkRoundComplete(game, io);
   });
 
@@ -303,23 +303,21 @@ io.on('connection', (socket) => {
 
       const player = game.players[playerIndex];
       
-      // --- CHANGE: MARK AS OFFLINE INSTEAD OF DELETING ---
+      // --- CHANGE: Mark Offline, Do Not Delete ---
       player.connected = false; 
+      // ------------------------------------------
 
-      const leaveMsg = { nickname: 'System', message: `${player.nickname} disconnected.`, timestamp: Date.now() };
+      const leaveMsg = { nickname: 'System', message: `${player.nickname} disconnected (waiting for reconnect).`, timestamp: Date.now() };
       game.chatMessages.push(leaveMsg);
 
-      // If Judge disconnects, we MUST rotate immediately
+      // If Judge disconnects, rotate immediately
       if (player.id === game.currentJudgeId) {
         game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
         game.currentJudgeId = game.players[game.judgeIndex].id;
-        game.chatMessages.push({ nickname: 'System', message: `Judge left. New judge: ${game.players[game.judgeIndex].nickname}`, timestamp: Date.now() });
         io.to(pin).emit('judgeUpdate', game.currentJudgeId);
       }
 
-      // Check if the round should end now that this person is gone
       checkRoundComplete(game, io);
-
       io.to(pin).emit('playerListUpdate', game.players);
       io.to(pin).emit('newMessage', leaveMsg);
     });

@@ -47,6 +47,17 @@ function HomeScreen({ socket, onGoToCreate }) {
           <li><strong>Win:</strong> The <strong>Judge</strong> picks their favorite. First to 5 points wins! (Judge role rotates).</li>
         </ol>
       </div>
+
+      {/* --- RESTORED SEO KEYWORD SECTION --- */}
+      <div className="about-box" style={{marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #eee'}}>
+        <h3 style={{textAlign: 'center'}}>About Ransom Notes Online</h3>
+        <p style={{fontSize: '0.9rem', color: '#555', lineHeight: '1.5'}}>
+          Welcome to Ransom Notes Online, a free party game for you and your friends! This game is inspired by the hilarious board game and games like Cards Against Humanity or Jackbox.
+        </p>
+        <p style={{fontSize: '0.9rem', color: '#555', lineHeight: '1.5'}}>
+          The goal is simple: you get a silly prompt, and you have to answer it using a random bank of word magnets. Create the funniest, most ridiculous sentence to win the judge's favor. Our game is 100% free to play, works on your phone or computer, and is the perfect online word game for your next game night.
+        </p>
+      </div>
       
       <p style={{fontSize: '0.8rem', opacity: 0.6, marginTop: '2rem'}}>
         Made with ❤️ (and frantic typing)

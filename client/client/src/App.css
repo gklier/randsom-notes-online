@@ -1,136 +1,152 @@
 /* client/src/App.css */
 
-:root {
-  --bg-color: #e6e2d3; /* Aged Paper / Manila Folder */
-  --text-color: #1a1a1a;
-  --primary-color: #d42426; /* Ransom Red */
-  --paper-white: #fafafa;
-  --ink-black: #111111;
-  --paper-shadow: 4px 4px 15px rgba(0,0,0,0.15);
-}
-
-body {
-  margin: 0;
-  /* Restore the Typewriter Font */
-  font-family: 'Courier New', Courier, monospace; 
-  background-color: var(--bg-color);
-  background-image: radial-gradient(#d1cdbc 1px, transparent 1px); /* Subtle paper texture */
-  background-size: 20px 20px;
-  color: var(--text-color);
-  display: flex;
-  justify-content: center;
-  min-height: 100vh;
-}
-
-#root {
-  width: 100%;
-  /* Increase max-width for Laptop/Desktop */
-  max-width: 900px; 
-  text-align: center;
-  padding: 2rem 1rem;
-}
-
-/* --- THE "CUT OUT" HEADERS --- */
-h1, h2, h3 {
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: -1px;
-  background: var(--ink-black);
-  color: #fff;
-  display: inline-block;
-  padding: 0.7rem 1.5rem;
-  transform: rotate(-1.5deg);
-  margin-bottom: 2rem;
-  box-shadow: 5px 5px 0px rgba(0,0,0,0.2);
-}
-
-/* --- CARDS & BOXES --- */
-.card {
-  background: var(--paper-white);
-  border: 1px solid #ddd;
+/* --- Main App Layout --- */
+.app-container {
+  max-width: 1000px; /* Widened for M2 Air comfort */
+  margin: 2rem auto;
   padding: 2rem;
-  margin: 2rem 0;
-  box-shadow: var(--paper-shadow);
+  background: #f4f1ea; /* Manila folder / Aged paper background */
+  border: 4px solid #111; /* Classic heavy ink border */
+  border-radius: 4px;
+  box-shadow: 12px 12px 0px rgba(0,0,0,0.15); 
   position: relative;
-  /* Slight random rotation for that "thrown on the table" look */
-  transform: rotate(0.5deg);
+  min-height: 80vh;
 }
 
-.card:nth-child(even) {
-  transform: rotate(-0.5deg);
-}
-
-/* --- WORD MAGNETS --- */
-.word-magnet {
-  display: inline-block;
-  background: #fff;
-  color: #000;
-  border: 2px solid #000;
-  padding: 0.4rem 0.8rem;
-  margin: 0.3rem;
-  font-family: 'Arial Black', sans-serif; /* Bold contrast to typewriter */
-  font-size: 1rem;
-  text-transform: uppercase;
-  box-shadow: 2px 2px 0px #000;
-  cursor: grab;
-  user-select: none;
-  background-image: linear-gradient(180deg, #fff 0%, #f0f0f0 100%);
-}
-
-.word-magnet:hover {
-  background: #ffffcc;
-  transform: scale(1.05) rotate(1deg);
-}
-
-/* --- BUTTONS --- */
+/* --- Buttons & Inputs --- */
 button {
-  background: var(--ink-black);
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  font-family: inherit;
-  font-weight: bold;
+  font-family: 'Special Elite', monospace;
+  font-size: 1rem;
+  padding: 0.6rem 1.2rem;
+  border: 2px solid #111;
+  background: #111; /* Back to Ink Black */
+  color: #fff;
   cursor: pointer;
-  margin: 0.5rem;
+  transition: all 0.1s;
+  margin: 0.25rem;
   text-transform: uppercase;
-  transition: transform 0.1s;
 }
 
 button:hover {
-  background: var(--primary-color);
-  transform: scale(1.02);
+  background: #d42426; /* Ransom Red on hover */
+  border-color: #8b1012;
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
 }
 
 button.secondary {
   background: #fff;
-  color: var(--ink-black);
-  border: 2px solid var(--ink-black);
+  color: #111;
 }
 
-/* --- LAYOUT FIXES FOR LAPTOP --- */
-@media (min-width: 768px) {
-  #root {
-    padding-top: 4rem;
-  }
-  
+input, textarea {
+  font-family: 'Special Elite', monospace;
+  font-size: 1.1rem;
+  padding: 0.5rem;
+  width: 100%;
+  max-width: 450px;
+  border: 2px solid #111;
+  background: #fff;
+  margin-bottom: 1rem;
+}
+
+/* --- THE RANSOM NOTE EFFECT (Submission & Display) --- */
+.submission-area {
+  border: 2px dashed #888;
+  min-height: 150px;
+  padding: 20px;
+  background: #fffef0; /* Post-it note tint */
+  margin-bottom: 1.5rem;
+  margin-top: 2rem; /* Carleen's Layout Fix */
+}
+
+.word-pool {
+  background: #eee;
+  padding: 15px;
+  border: 1px solid #ccc;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Base Magnet Style */
+.word-pool button,
+.submission-area button,
+.ransom-note-text span {
+  font-family: 'Arial', sans-serif;
+  border: none;
+  padding: 5px 8px;
+  margin: 4px;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 0;
+  display: inline-block;
+}
+
+/* --- CLASSIC RANSOM COLOR ROTATION --- */
+
+/* 1. The Red One (Magazine Cutout) */
+.word-pool button:nth-child(4n+1),
+.ransom-note-text span:nth-child(4n+1) {
+  background: #d42426;
+  color: white;
+  font-family: 'Times New Roman', serif;
+  transform: rotate(-2deg);
+}
+
+/* 2. The Black One (Bold Newsprint) */
+.word-pool button:nth-child(4n+2),
+.ransom-note-text span:nth-child(4n+2) {
+  background: #111;
+  color: white;
+  font-family: 'Arial Black', sans-serif;
+  transform: rotate(1.5deg);
+}
+
+/* 3. The Paper One (Typed) */
+.word-pool button:nth-child(4n+3),
+.ransom-note-text span:nth-child(4n+3) {
+  background: #fff;
+  color: #111;
+  font-family: 'Special Elite', monospace;
+  border: 1px solid #ccc;
+  transform: rotate(-1deg);
+}
+
+/* 4. The Grey One (Old Newspaper) */
+.word-pool button:nth-child(4n+4),
+.ransom-note-text span:nth-child(4n+4) {
+  background: #ddd;
+  color: #111;
+  font-family: 'Courier New', monospace;
+  transform: rotate(2.5deg);
+}
+
+.word-pool button:hover {
+  transform: scale(1.1) rotate(5deg) !important;
+  z-index: 20;
+}
+
+/* --- Laptop Optimization --- */
+@media (min-width: 900px) {
   .submissions-list {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* Two columns on big screens */
+    grid-template-columns: 1fr 1fr;
     gap: 20px;
   }
-
-  .answer-box {
-    min-height: 150px;
-    padding: 20px;
-  }
 }
 
-/* Emergency Exit Button Styling */
-.home-button {
-  background: #fff !important;
-  color: #333 !important;
-  border: 1px solid #ccc !important;
-  box-shadow: none !important;
-  transform: none !important;
+/* --- UI Utilities --- */
+.home-button, .music-player-button {
+  position: absolute;
+  top: 10px;
+  font-size: 0.75rem;
+  background: #fff;
+  color: #111;
+  border: 1px solid #111;
 }
+.home-button { left: 10px; }
+.music-player-button { right: 10px; }

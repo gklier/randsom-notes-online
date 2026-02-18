@@ -58,6 +58,20 @@ function HomeScreen({ socket, onGoToCreate }) {
           The goal is simple: you get a silly prompt, and you have to answer it using a random bank of word magnets. Create the funniest, most ridiculous sentence to win the judge's favor. Our game is 100% free to play, works on your phone or computer, and is the perfect online word game for your next game night.
         </p>
       </div>
+
+      {/* --- RESTORED SUPPORT & BUG BUTTONS --- */}
+      <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <a href="https://www.buymeacoffee.com/gklier" target="_blank" rel="noreferrer">
+          <button className="secondary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>
+            ☕ Buy Me a Coffee
+          </button>
+        </a>
+        <a href="mailto:bugs@ransomnotes.online">
+          <button className="secondary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>
+            🐛 Report a Bug
+          </button>
+        </a>
+      </div>
       
       <p style={{fontSize: '0.8rem', opacity: 0.6, marginTop: '2rem'}}>
         Made with ❤️ (and frantic typing)

@@ -18,7 +18,7 @@ function HomeScreen({ socket, onGoToCreate }) {
   return (
     <div>
       {/* CHRISTMAS UPDATE: Added Santa Emoji */}
-      <h1>🎅 Ransom Notes Online 🎅</h1>
+      <h1> Ransom Notes Online </h1>
       
       {/* --- Section for Host --- */}
       <div>

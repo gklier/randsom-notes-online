@@ -1,72 +1,70 @@
 /* client/src/App.css */
 
-/* --- Main App Layout --- */
+:root {
+  /* A more readable, "Deskside" palette */
+  --bg-color: #d1ccc0; /* Neutral grey-beige */
+  --ink-black: #1a1a1a;
+  --ransom-red: #cc0000;
+  --paper-white: #ffffff;
+}
+
+body {
+  margin: 0;
+  font-family: 'Special Elite', 'Courier New', Courier, monospace; 
+  /* Removing the loud red for a subtle "Desk" texture */
+  background-color: var(--bg-color);
+  background-image: radial-gradient(#bcbaaa 1px, transparent 1px);
+  background-size: 25px 25px;
+  color: var(--ink-black);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
 .app-container {
-  max-width: 1000px; /* Widened for M2 Air comfort */
+  max-width: 1000px;
   margin: 2rem auto;
-  padding: 2rem;
-  background: #f4f1ea; /* Manila folder / Aged paper background */
-  border: 4px solid #111; /* Classic heavy ink border */
+  /* FIX: Increased padding-top to 5rem to clear the Home/Music buttons */
+  padding: 5rem 2rem 2rem 2rem; 
+  background: #f4f1ea; 
+  border: 4px solid #111;
   border-radius: 4px;
-  box-shadow: 12px 12px 0px rgba(0,0,0,0.15); 
+  box-shadow: 15px 15px 0px rgba(0,0,0,0.1); 
   position: relative;
   min-height: 80vh;
 }
 
-/* --- Buttons & Inputs --- */
-button {
-  font-family: 'Special Elite', monospace;
-  font-size: 1rem;
-  padding: 0.6rem 1.2rem;
-  border: 2px solid #111;
-  background: #111; /* Back to Ink Black */
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.1s;
-  margin: 0.25rem;
-  text-transform: uppercase;
-}
-
-button:hover {
-  background: #d42426; /* Ransom Red on hover */
-  border-color: #8b1012;
-  transform: translateY(-2px);
-  box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
-}
-
-button.secondary {
+/* --- BUTTON PLACEMENT FIX --- */
+.home-button, .music-player-button {
+  position: absolute;
+  top: 15px; /* Fixed distance from the top */
+  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  z-index: 100;
   background: #fff;
+  border: 2px solid #111;
   color: #111;
-}
-
-input, textarea {
   font-family: 'Special Elite', monospace;
-  font-size: 1.1rem;
-  padding: 0.5rem;
-  width: 100%;
-  max-width: 450px;
-  border: 2px solid #111;
-  background: #fff;
-  margin-bottom: 1rem;
+  box-shadow: 3px 3px 0px #111;
 }
 
-/* --- THE RANSOM NOTE EFFECT (Submission & Display) --- */
-.submission-area {
-  border: 2px dashed #888;
-  min-height: 150px;
-  padding: 20px;
-  background: #fffef0; /* Post-it note tint */
-  margin-bottom: 1.5rem;
-  margin-top: 2rem; /* Carleen's Layout Fix */
-}
+.home-button { left: 15px; }
+.music-player-button { right: 15px; }
 
-.word-pool {
+.home-button:hover, .music-player-button:hover {
   background: #eee;
-  padding: 15px;
-  border: 1px solid #ccc;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  transform: translateY(-2px);
+  box-shadow: 5px 5px 0px #111;
+}
+
+/* --- HEADER SPACING --- */
+h1, h2, h3 {
+  /* Ensure headers start below the absolute buttons */
+  margin-top: 0; 
+  background: var(--ink-black);
+  color: white;
+  padding: 8px 15px;
+  transform: rotate(-1deg);
 }
 
 /* Base Magnet Style */

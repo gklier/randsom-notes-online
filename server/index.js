@@ -1,12 +1,10 @@
 // --- server/index.js ---
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const { Pool } = require('pg');
 
-// --- LOAD PACK FILES ---
 const promptsNSFW = require('./prompts-nsfw.json');
 const wordsNSFW = require('./words-nsfw.json');
 const promptsFamily = require('./prompts-family.json');
@@ -17,7 +15,6 @@ const promptsResearch = require('./prompts-research.json');
 const wordsResearch = require('./words-research.json');
 const jokesResearch = require('./jokes-research.json');
 
-// --- DATABASE SETUP ---
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
@@ -39,7 +36,6 @@ const createSuggestionTable = async () => {
   }
 };
 
-// --- DEFAULT PACKS ---
 const defaultPacks = {
   nsfw: {
     prompts: Array.isArray(promptsNSFW) ? promptsNSFW : promptsNSFW.all,
@@ -62,7 +58,6 @@ const jokePacks = {
   custom: jokesFamily
 };
 
-// --- EXPRESS + SOCKET.IO SERVER ---
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -74,25 +69,21 @@ const io = new Server(server, {
 
 const games = {};
 
-// --- CONNECTOR WORDS INJECTOR ---
 const CONNECTOR_WORDS = ["the", "and", "is", "a", "to", "in", "of", "it", "that", "for", "on", "with", "at", "by", "my", "your"];
 
 function getRandomWords(wordList, count) {
   if (!Array.isArray(wordList)) return [];
-  // Shuffle the main list
   const shuffled = [...wordList].sort(() => 0.5 - Math.random());
-  // Take the requested amount
   const selected = shuffled.slice(0, count);
-  // Add connector words to ensure sentences are possible
   return [...selected, ...CONNECTOR_WORDS].sort(() => 0.5 - Math.random());
 }
 
-// --- HELPER: CHECK IF ROUND IS COMPLETE ---
 function checkRoundComplete(game, io) {
     if (game.gameState !== 'SUBMITTING') return;
 
+    // FIX: Include the judge in the required submissions if judgePlays is true
     const playersSubmitting = game.players.filter(p => 
-        p.id !== game.currentJudgeId && p.connected !== false
+        (game.judgePlays || p.id !== game.currentJudgeId) && p.connected !== false
     );
     
     const activeSubmissions = playersSubmitting.filter(p => game.submissions[p.id]);
@@ -132,7 +123,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('createGame', ({ customPrompts, customWords, defaultPack, hostNickname }) => {
+  socket.on('createGame', ({ customPrompts, customWords, defaultPack, hostNickname, judgePlays }) => {
     const roomPIN = Math.floor(1000 + Math.random() * 9000).toString();
     let gamePrompts, gameWords, packName;
     const nickname = hostNickname || 'Host';
@@ -154,6 +145,7 @@ io.on('connection', (socket) => {
       prompts: gamePrompts,
       words: gameWords,
       packName,
+      judgePlays: judgePlays || false,
       gameState: 'LOBBY',
       submissions: {},
       currentPrompt: '',
@@ -173,7 +165,6 @@ io.on('connection', (socket) => {
 
     const existingPlayerIndex = game.players.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
     
-    // --- RECONNECTION ---
     if (existingPlayerIndex !== -1) {
       const oldSocketId = game.players[existingPlayerIndex].id;
       game.players[existingPlayerIndex].id = socket.id;
@@ -207,10 +198,8 @@ io.on('connection', (socket) => {
       return; 
     }
 
-    // --- NEW PLAYER JOIN ---
     const newPlayer = { id: socket.id, nickname, score: 0, connected: true };
     
-    // BUG FIX: If joining mid-round, give them words immediately!
     if (game.gameState === 'SUBMITTING') {
         const wordPool = getRandomWords(game.words, 75);
         newPlayer.currentWordPool = wordPool;
@@ -218,7 +207,6 @@ io.on('connection', (socket) => {
         game.players.push(newPlayer);
         socket.join(pin);
         
-        // Send join success with the round data
         socket.emit('joinSuccess', { 
             ...game, 
             wordPool, 
@@ -226,7 +214,6 @@ io.on('connection', (socket) => {
             randomJoke: game.currentJoke 
         });
     } else {
-        // Normal join (Lobby or Judging)
         game.players.push(newPlayer);
         socket.join(pin);
         socket.emit('joinSuccess', game);
@@ -275,15 +262,29 @@ io.on('connection', (socket) => {
     io.to(game.currentJudgeId).emit('playerSubmitted', socket.id);
     checkRoundComplete(game, io);
   });
-  // --- EMERGENCY HOST CONTROLS ---
 
-  // 1. Force End Submissions (Time's Up)
   socket.on('forceEndSubmissions', ({ pin }) => {
     const game = games[pin];
     if (!game || game.gameState !== 'SUBMITTING') return;
     
-    // Security check: Only Host or current Judge can force end
     if (socket.id !== game.hostId && socket.id !== game.currentJudgeId) return;
+
+    if (Object.keys(game.submissions).length === 0) {
+        game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
+        game.currentJudgeId = game.players[game.judgeIndex].id;
+
+        io.to(pin).emit('roundOver', {
+          winnerNickname: "Nobody 🦗",
+          winningAnswer: ["WE", "HEARD", "CRICKETS"], 
+          scores: game.players,
+          currentJudgeId: game.currentJudgeId,
+          nextJudgeNickname: game.players.find(p => p.id === game.currentJudgeId).nickname
+        });
+
+        game.gameState = 'LOBBY';
+        game.submissions = {};
+        return;
+    }
 
     game.gameState = 'JUDGING';
     io.to(game.pin).emit('showSubmissions', {
@@ -294,12 +295,10 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 2. Skip Judging (Judge is AFK)
   socket.on('skipJudging', ({ pin }) => {
     const game = games[pin];
     if (!game || game.gameState !== 'JUDGING') return;
     
-    // Security check: Only Host can skip a broken Judge
     if (socket.id !== game.hostId) return;
 
     game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
@@ -307,7 +306,7 @@ io.on('connection', (socket) => {
 
     io.to(pin).emit('roundOver', {
       winnerNickname: "Nobody (Skipped) ⏭️",
-      winningAnswer: ["TIME", "RAN", "OUT"], // Funny default answer
+      winningAnswer: ["TIME", "RAN", "OUT"], 
       scores: game.players,
       currentJudgeId: game.currentJudgeId,
       nextJudgeNickname: game.players.find(p => p.id === game.currentJudgeId).nickname

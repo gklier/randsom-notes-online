@@ -1,5 +1,4 @@
 // --- client/src/SubmissionScreen.jsx ---
-
 import { useState, useEffect } from 'react';
 
 // Helper component to render text in the ransom note style
@@ -20,7 +19,7 @@ function SubmissionScreen({ socket, gameData }) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [availableWords, setAvailableWords] = useState(gameData.wordPool || []);
 
-  const { pin, hostId, currentJudgeId, prompt, randomJoke } = gameData;
+  const { pin, hostId, currentJudgeId, prompt, randomJoke, judgePlays } = gameData;
   
   const isJudge = socket.id === currentJudgeId;
   const isHostOrJudge = socket.id === hostId || socket.id === currentJudgeId;
@@ -46,8 +45,6 @@ function SubmissionScreen({ socket, gameData }) {
   };
 
   const handleSubmit = () => {
-    // CRITICAL BUG FIX: Send the raw array instead of a joined string!
-    // This allows the JudgingScreen to render individual magnets.
     socket.emit('submitAnswer', { pin, answer: myAnswer });
     setIsSubmitted(true);
   };
@@ -58,7 +55,6 @@ function SubmissionScreen({ socket, gameData }) {
     }
   };
 
-  // --- EMERGENCY HOST/JUDGE OVERRIDE BUTTON ---
   const emergencyButton = isHostOrJudge && (
     <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
       <button 
@@ -71,7 +67,8 @@ function SubmissionScreen({ socket, gameData }) {
     </div>
   );
 
-  if (isJudge) { 
+  // If they are the judge AND the "Judge Plays" toggle is OFF, show the waiting screen
+  if (isJudge && !judgePlays) { 
     return (
       <div className="waiting-box">
         {emergencyButton}

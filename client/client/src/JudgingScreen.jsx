@@ -5,7 +5,7 @@ function JudgingScreen({ socket, gameData }) {
   const { prompt = "Wait, where did the prompt go?", submissions = {}, players = [], currentJudgeId, hostId } = gameData || {};
   
   const isJudge = socket.id === currentJudgeId;
-  const isHost = socket.id === hostId; // Check if current user is the Host
+  const isHost = socket.id === hostId;
 
   const handleSelectWinner = (winnerId) => {
     if (!isJudge) return;
@@ -35,7 +35,7 @@ function JudgingScreen({ socket, gameData }) {
       
       {/* HOST EMERGENCY CONTROL */}
       {isHost && !isJudge && (
-        <button className="secondary" style={{ backgroundColor: '#ffe6e6', color: '#cc0000', borderColor: '#cc0000' }} onClick={handleSkipRound}>
+        <button className="secondary" style={{ backgroundColor: '#ffe6e6', color: '#cc0000', borderColor: '#cc0000', marginBottom: '1rem' }} onClick={handleSkipRound}>
           🚨 Force Skip (Judge AFK)
         </button>
       )}
@@ -50,26 +50,35 @@ function JudgingScreen({ socket, gameData }) {
         
         {submissionsList.map((sub, index) => (
           <div key={sub.playerId} className="card submission-card">
-            <h4 style={{ color: '#555' }}>
+            <h4 style={{ color: '#555', marginBottom: '1rem' }}>
               {isJudge ? "???" : sub.nickname}
             </h4>
             
-            <div className="answer-box">
+            {/* THE MAGNET FORMATTING FIX */}
+            <div className="answer-box ransom-note-text" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', minHeight: '120px', alignItems: 'center' }}>
               {Array.isArray(sub.answer) ? (
+                // If it's a new array payload, map it into magnets
                 sub.answer.map((word, i) => (
-                  <span key={i} className="word-magnet" style={{ transform: `rotate(${Math.random() * 4 - 2}deg)` }}>
+                  <span key={i} className="word-magnet" style={{ transform: `rotate(${Math.random() * 6 - 3}deg)` }}>
+                    {word}
+                  </span>
+                ))
+              ) : typeof sub.answer === 'string' ? (
+                // Fallback: If it's an old string payload, split it and make magnets
+                sub.answer.split(' ').map((word, i) => (
+                  <span key={i} className="word-magnet" style={{ transform: `rotate(${Math.random() * 6 - 3}deg)` }}>
                     {word}
                   </span>
                 ))
               ) : (
-                <span className="error-msg">Answer lost in the mail ✉️</span>
+                <span className="word-magnet">Data lost in the void 🌌</span>
               )}
             </div>
 
             {isJudge && (
               <button 
                 className="primary" 
-                style={{ marginTop: '1rem' }}
+                style={{ marginTop: '1.5rem', width: '100%' }}
                 onClick={() => handleSelectWinner(sub.playerId)}
               >
                 🏆 Pick Winner

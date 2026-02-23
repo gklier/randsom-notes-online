@@ -2,9 +2,10 @@
 import React from 'react';
 
 function JudgingScreen({ socket, gameData }) {
-  // Defensive fallback: If any of these are missing, default to safe empty values
-  const { prompt = "Wait, where did the prompt go?", submissions = {}, players = [], currentJudgeId } = gameData || {};
+  const { prompt = "Wait, where did the prompt go?", submissions = {}, players = [], currentJudgeId, hostId } = gameData || {};
+  
   const isJudge = socket.id === currentJudgeId;
+  const isHost = socket.id === hostId; // Check if current user is the Host
 
   const handleSelectWinner = (winnerId) => {
     if (!isJudge) return;
@@ -13,7 +14,12 @@ function JudgingScreen({ socket, gameData }) {
     }
   };
 
-  // Safely map over submissions without crashing if data is weird
+  const handleSkipRound = () => {
+    if (window.confirm("Skip this round? No points will be awarded.")) {
+      socket.emit('skipJudging', { pin: gameData.pin });
+    }
+  };
+
   const submissionsList = Object.keys(submissions).map(playerId => {
     const player = players.find(p => p.id === playerId);
     return {
@@ -27,7 +33,14 @@ function JudgingScreen({ socket, gameData }) {
     <div className="judging-page">
       <h2>The Judge is Deciding... ⚖️</h2>
       
-      <div className="card" style={{ background: '#eee' }}>
+      {/* HOST EMERGENCY CONTROL */}
+      {isHost && !isJudge && (
+        <button className="secondary" style={{ backgroundColor: '#ffe6e6', color: '#cc0000', borderColor: '#cc0000' }} onClick={handleSkipRound}>
+          🚨 Force Skip (Judge AFK)
+        </button>
+      )}
+      
+      <div className="card" style={{ background: '#eee', marginTop: '1rem' }}>
         <h3>Prompt:</h3>
         <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{prompt}</p>
       </div>
@@ -42,7 +55,6 @@ function JudgingScreen({ socket, gameData }) {
             </h4>
             
             <div className="answer-box">
-              {/* THE CRASH FIX: Check if answer is an array before mapping! */}
               {Array.isArray(sub.answer) ? (
                 sub.answer.map((word, i) => (
                   <span key={i} className="word-magnet" style={{ transform: `rotate(${Math.random() * 4 - 2}deg)` }}>

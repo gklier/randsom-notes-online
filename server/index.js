@@ -275,6 +275,47 @@ io.on('connection', (socket) => {
     io.to(game.currentJudgeId).emit('playerSubmitted', socket.id);
     checkRoundComplete(game, io);
   });
+  // --- EMERGENCY HOST CONTROLS ---
+
+  // 1. Force End Submissions (Time's Up)
+  socket.on('forceEndSubmissions', ({ pin }) => {
+    const game = games[pin];
+    if (!game || game.gameState !== 'SUBMITTING') return;
+    
+    // Security check: Only Host or current Judge can force end
+    if (socket.id !== game.hostId && socket.id !== game.currentJudgeId) return;
+
+    game.gameState = 'JUDGING';
+    io.to(game.pin).emit('showSubmissions', {
+      prompt: game.currentPrompt,
+      submissions: game.submissions,
+      players: game.players,
+      currentJudgeId: game.currentJudgeId
+    });
+  });
+
+  // 2. Skip Judging (Judge is AFK)
+  socket.on('skipJudging', ({ pin }) => {
+    const game = games[pin];
+    if (!game || game.gameState !== 'JUDGING') return;
+    
+    // Security check: Only Host can skip a broken Judge
+    if (socket.id !== game.hostId) return;
+
+    game.judgeIndex = (game.judgeIndex + 1) % game.players.length;
+    game.currentJudgeId = game.players[game.judgeIndex].id;
+
+    io.to(pin).emit('roundOver', {
+      winnerNickname: "Nobody (Skipped) ⏭️",
+      winningAnswer: ["TIME", "RAN", "OUT"], // Funny default answer
+      scores: game.players,
+      currentJudgeId: game.currentJudgeId,
+      nextJudgeNickname: game.players.find(p => p.id === game.currentJudgeId).nickname
+    });
+
+    game.gameState = 'LOBBY';
+    game.submissions = {};
+  });
 
   socket.on('selectWinner', ({ pin, winnerId }) => {
     const game = games[pin];

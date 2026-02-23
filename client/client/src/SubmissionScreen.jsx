@@ -20,14 +20,16 @@ function SubmissionScreen({ socket, gameData }) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [availableWords, setAvailableWords] = useState(gameData.wordPool || []);
 
-  const isJudge = socket.id === gameData.currentJudgeId; // <-- NEW
+  const { pin, hostId, currentJudgeId, prompt, randomJoke } = gameData;
+  
+  const isJudge = socket.id === currentJudgeId;
+  const isHostOrJudge = socket.id === hostId || socket.id === currentJudgeId;
 
   useEffect(() => {
     setAvailableWords(gameData.wordPool || []);
     setMyAnswer([]);
     setIsSubmitted(false);
-  }, [gameData.wordPool, gameData.currentJudgeId]); // <-- ADDED currentJudgeId to dependency array
-
+  }, [gameData.wordPool, currentJudgeId]); 
 
   const addWord = (word, index) => {
     setMyAnswer([...myAnswer, word]);
@@ -44,19 +46,40 @@ function SubmissionScreen({ socket, gameData }) {
   };
 
   const handleSubmit = () => {
-    const answerString = myAnswer.join(' ');
-    socket.emit('submitAnswer', { pin: gameData.pin, answer: answerString });
+    // CRITICAL BUG FIX: Send the raw array instead of a joined string!
+    // This allows the JudgingScreen to render individual magnets.
+    socket.emit('submitAnswer', { pin, answer: myAnswer });
     setIsSubmitted(true);
   };
 
-  if (isJudge) { // <-- NEW: If you're the judge, you don't submit
+  const handleForceEnd = () => {
+    if (window.confirm("Force end submissions? Anyone who hasn't submitted will miss out this round!")) {
+      socket.emit('forceEndSubmissions', { pin });
+    }
+  };
+
+  // --- EMERGENCY HOST/JUDGE OVERRIDE BUTTON ---
+  const emergencyButton = isHostOrJudge && (
+    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+      <button 
+        className="secondary" 
+        style={{ backgroundColor: '#ffe6e6', color: '#cc0000', borderColor: '#cc0000' }} 
+        onClick={handleForceEnd}
+      >
+        ⏱️ Time's Up! (Force End)
+      </button>
+    </div>
+  );
+
+  if (isJudge) { 
     return (
       <div className="waiting-box">
+        {emergencyButton}
         <h3>You are the judge this round!</h3>
         <p>Waiting for other players to submit their answers...</p>
         <hr />
         <h4>Here's a Joke:</h4>
-        <p>{gameData.randomJoke}</p>
+        <p>{randomJoke}</p>
       </div>
     );
   }
@@ -64,19 +87,21 @@ function SubmissionScreen({ socket, gameData }) {
   if (isSubmitted) {
     return (
       <div className="waiting-box">
+        {emergencyButton}
         <h3>Submission sent!</h3>
         <p>Waiting for other players...</p>
         <hr />
         <h4>Here's a Joke:</h4>
-        <p>{gameData.randomJoke}</p>
+        <p>{randomJoke}</p>
       </div>
     );
   }
 
   return (
     <div>
+      {emergencyButton}
       <h2>The Prompt:</h2>
-      <RansomText text={gameData.prompt} />
+      <RansomText text={prompt} />
       <hr />
       
       <h4>Your Answer:</h4>
@@ -87,7 +112,7 @@ function SubmissionScreen({ socket, gameData }) {
           </button>
         ))}
       </div>
-      <button onClick={handleSubmit} disabled={myAnswer.length === 0}>
+      <button className="primary" onClick={handleSubmit} disabled={myAnswer.length === 0}>
         Submit Answer
       </button>
 
